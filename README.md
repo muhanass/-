@@ -4,6 +4,13 @@
 
 A bilingual (Arabic/English) inventory management system for food & beverage shops that manufacture their own products in-house (chef-made items).
 
+يوجد نسختان:
+
+1. **نسخة الويب الجاهزة** (`web/kitchen-stock.html`) — صفحة واحدة منشورة على claude.ai لها رابط يُفتح من أي جهاز بدون تنصيب، والبيانات محفوظة ومشتركة بين كل من يفتح الرابط.
+2. **النسخة الكاملة** (`server/` + `client/`) — تعمل على جهاز في المحل، وفيها إضافات تحتاج صلاحيات الجهاز: مسح الباركود بالكاميرا، وقراءة النص من الصور (OCR)، وحفظ صور الأصناف كملفات.
+
+There are two versions: a ready-to-open **web page** (`web/kitchen-stock.html`, published on claude.ai — one link, no install, shared data) and the **full app** (`server/` + `client/`) that runs on a shop computer and adds camera barcode scanning, photo OCR, and file-based photo storage.
+
 ---
 
 ## بالعربي

@@ -1,0 +1,1081 @@
+<title>مخزون المطبخ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#f2f5f2; --surface:#ffffff; --surface-2:#e9efe9; --line:#d8e0da;
+  --ink:#16211c; --ink-2:#5d6f66;
+  --herb:#1c6b50; --herb-ink:#ffffff; --herb-soft:#dfeee7;
+  --copper:#a2601f; --copper-soft:#f7ebd9;
+  --clay:#9e3128; --clay-soft:#f8e3e0;
+  --r:10px; --rail:236px;
+  --display:'Readex Pro','IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;
+  --body:'IBM Plex Sans Arabic','Readex Pro','Segoe UI',Tahoma,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#111614; --surface:#191f1c; --surface-2:#222a26; --line:#2c352f;
+    --ink:#e6ece8; --ink-2:#93a49b;
+    --herb:#57c295; --herb-ink:#0d1512; --herb-soft:#172d25;
+    --copper:#d99a52; --copper-soft:#2e2418;
+    --clay:#e2796e; --clay-soft:#32201e;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#111614; --surface:#191f1c; --surface-2:#222a26; --line:#2c352f;
+  --ink:#e6ece8; --ink-2:#93a49b;
+  --herb:#57c295; --herb-ink:#0d1512; --herb-soft:#172d25;
+  --copper:#d99a52; --copper-soft:#2e2418;
+  --clay:#e2796e; --clay-soft:#32201e;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;-webkit-text-size-adjust:100%}
+h1,h2,h3{font-family:var(--display);font-weight:600;margin:0;text-wrap:balance;line-height:1.25}
+h1{font-size:clamp(1.25rem,1rem + 1vw,1.6rem)}
+h2{font-size:1.05rem}
+h3{font-size:.95rem}
+button,input,select,textarea{font-family:inherit;font-size:1rem;color:inherit}
+:focus-visible{outline:2px solid var(--herb);outline-offset:2px;border-radius:6px}
+.eyebrow{font-size:.72rem;color:var(--ink-2);font-weight:600}
+:root[lang="en"] .eyebrow{text-transform:uppercase;letter-spacing:.08em}
+
+/* shell */
+.shell{display:grid;grid-template-columns:var(--rail) 1fr;min-height:100vh}
+.rail{background:var(--surface);border-inline-end:1px solid var(--line);padding:18px 12px;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:9px;padding:4px 10px 16px;font-family:var(--display);font-weight:600;font-size:1.02rem}
+.brand .mark{width:26px;height:26px;border-radius:8px;background:var(--herb);color:var(--herb-ink);display:grid;place-items:center;font-size:.85rem;flex:none}
+.navbtn{display:flex;align-items:center;gap:9px;width:100%;text-align:start;background:none;border:0;padding:9px 11px;border-radius:9px;cursor:pointer;color:var(--ink);font-size:.92rem;font-weight:500}
+.navbtn:hover{background:var(--surface-2)}
+.navbtn[aria-current="true"]{background:var(--herb-soft);color:var(--herb);font-weight:600}
+.navbtn .n{margin-inline-start:auto;font-size:.72rem;color:var(--clay);font-weight:700;font-variant-numeric:tabular-nums}
+.rail-foot{margin-top:auto;padding-top:14px;font-size:.75rem;color:var(--ink-2)}
+
+.main{min-width:0;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 22px;background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap;position:sticky;top:0;z-index:5}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:5px 13px;cursor:pointer;color:var(--ink-2);font-size:.83rem;font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--herb);color:var(--herb-ink);font-weight:600}
+.who{display:flex;align-items:center;gap:8px;background:none;border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 12px;cursor:pointer;font-size:.83rem}
+:root[dir="rtl"] .who{padding:4px 12px 4px 6px}
+.who .role{background:var(--herb-soft);color:var(--herb);border-radius:999px;padding:1px 9px;font-size:.72rem;font-weight:600}
+.view{padding:22px;display:flex;flex-direction:column;gap:18px;max-width:1180px;width:100%}
+
+/* page head */
+.phead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.phead p{margin:4px 0 0;color:var(--ink-2);font-size:.88rem;max-width:62ch}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:9px;padding:8px 14px;font-size:.87rem;font-weight:600;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn-primary{background:var(--herb);border-color:var(--herb);color:var(--herb-ink)}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-danger{color:var(--clay);border-color:var(--clay-soft);background:var(--clay-soft)}
+.btn-sm{padding:4px 10px;font-size:.78rem;border-radius:7px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-ghost{border-color:transparent;background:none;color:var(--ink-2)}
+.btn-ghost:hover{background:var(--surface-2);color:var(--ink)}
+
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:700px){.tiles{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.tile .k{font-size:.76rem;color:var(--ink-2);font-weight:500}
+.tile .v{font-family:var(--display);font-size:1.7rem;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2;margin-top:2px}
+.tile .sub{font-size:.75rem;color:var(--ink-2)}
+.tile.warn .v{color:var(--copper)} .tile.crit .v{color:var(--clay)}
+
+/* panels + tables */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.panel > header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.panel .body{padding:14px 16px}
+.two{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;align-items:start}
+@media (max-width:980px){.two{grid-template-columns:1fr}}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.87rem;font-variant-numeric:tabular-nums}
+th{text-align:start;font-size:.72rem;color:var(--ink-2);font-weight:600;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+:root[lang="en"] th{text-transform:uppercase;letter-spacing:.06em}
+td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+tr.low td:first-child{box-shadow:inset 3px 0 0 var(--copper)}
+:root[dir="rtl"] tr.low td:first-child{box-shadow:inset -3px 0 0 var(--copper)}
+tr.out td:first-child{box-shadow:inset 3px 0 0 var(--clay)}
+:root[dir="rtl"] tr.out td:first-child{box-shadow:inset -3px 0 0 var(--clay)}
+.name{display:flex;align-items:center;gap:9px;min-width:0}
+.name .thumb{width:30px;height:30px;border-radius:7px;object-fit:cover;flex:none;border:1px solid var(--line)}
+.name b{font-weight:600}
+.name small{display:block;color:var(--ink-2);font-size:.74rem;font-weight:400}
+.rowacts{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-start}
+.mono{font-family:var(--mono);font-size:.8rem;color:var(--ink-2)}
+
+.pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:.76rem;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pill-ok{background:var(--herb-soft);color:var(--herb)}
+.pill-warn{background:var(--copper-soft);color:var(--copper)}
+.pill-crit{background:var(--clay-soft);color:var(--clay)}
+.pill-mute{background:var(--surface-2);color:var(--ink-2)}
+
+.toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.search{flex:1;min-width:190px;max-width:340px}
+input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{
+  width:100%;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:.9rem}
+textarea{resize:vertical}
+label.f{display:block;font-size:.76rem;font-weight:600;color:var(--ink-2);margin-bottom:5px}
+.field{margin-bottom:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.grid2{grid-template-columns:1fr}}
+.check{display:flex;align-items:center;gap:7px;font-size:.85rem;color:var(--ink-2)}
+.check input{width:auto}
+.empty{padding:34px 18px;text-align:center;color:var(--ink-2);font-size:.88rem}
+.note{background:var(--herb-soft);color:var(--herb);border-radius:9px;padding:9px 13px;font-size:.83rem;display:flex;gap:10px;align-items:center;justify-content:space-between}
+.warnbar{background:var(--copper-soft);color:var(--copper);border-radius:9px;padding:9px 13px;font-size:.83rem}
+.critbar{background:var(--clay-soft);color:var(--clay);border-radius:9px;padding:9px 13px;font-size:.83rem}
+
+/* modal */
+.scrim{position:fixed;inset:0;background:rgba(10,18,14,.5);display:grid;place-items:center;padding:16px;z-index:50}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:14px;width:min(560px,100%);max-height:90vh;overflow:auto;padding:20px}
+.modal.wide{width:min(760px,100%)}
+.modal header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.modal footer{display:flex;justify-content:flex-end;gap:9px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);flex-wrap:wrap}
+.x{border:0;background:none;cursor:pointer;color:var(--ink-2);font-size:1.05rem;padding:4px 8px;border-radius:7px}
+.x:hover{background:var(--surface-2)}
+.recipe-row{display:grid;grid-template-columns:1fr 110px auto;gap:8px;margin-bottom:8px;align-items:center}
+.label-card{border:1px dashed var(--line);border-radius:10px;padding:16px;text-align:center;background:var(--surface)}
+.label-card .lname{font-family:var(--display);font-weight:600;margin-bottom:2px}
+.label-card .lprice{color:var(--ink-2);font-size:.85rem;margin-bottom:8px}
+.label-card svg{max-width:100%;height:auto}
+.photo-box img{max-width:100%;max-height:200px;border-radius:9px;border:1px solid var(--line);display:block}
+
+#toast{position:fixed;inset-inline:0;bottom:18px;display:flex;justify-content:center;pointer-events:none;z-index:80}
+#toast div{background:var(--ink);color:var(--ground);padding:9px 16px;border-radius:999px;font-size:.85rem;box-shadow:0 6px 24px rgba(0,0,0,.22)}
+
+/* mobile */
+@media (max-width:860px){
+  .shell{grid-template-columns:1fr}
+  .rail{position:fixed;inset-inline:0;bottom:0;top:auto;height:auto;flex-direction:row;overflow-x:auto;padding:6px;gap:4px;border-inline-end:0;border-top:1px solid var(--line);z-index:20}
+  .brand,.rail-foot{display:none}
+  .navbtn{flex-direction:column;gap:2px;font-size:.68rem;padding:7px 10px;white-space:nowrap;min-width:66px;text-align:center;align-items:center}
+  .navbtn .n{margin:0}
+  .view{padding:16px 14px 86px}
+  .top{padding:10px 14px}
+}
+@media print{
+  .rail,.top,.acts,.toolbar,.rowacts,.no-print,#toast,.scrim{display:none !important}
+  body,.shell{background:#fff;display:block}
+  .view{padding:0;max-width:none}
+  .panel{border:0}
+  th,td{padding:5px 8px;font-size:11px}
+  a[href]:after{content:""}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+
+<div class="shell">
+  <nav class="rail" id="rail"></nav>
+  <div class="main">
+    <div class="top" id="top"></div>
+    <main class="view" id="view"></main>
+  </div>
+</div>
+<div id="modalRoot"></div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ---------------------------------------------------------------- i18n */
+const STR = {
+  ar:{
+    app:"مخزون المطبخ",
+    nav_dash:"لوحة التحكم", nav_ing:"المواد الخام", nav_prod:"المنتجات", nav_make:"التصنيع",
+    nav_moves:"حركة المخزون", nav_rep:"التقارير", nav_set:"الإعدادات",
+    dash_sub:"نظرة سريعة على المخزون وما يحتاج انتباه اليوم.",
+    t_ing:"مواد خام", t_prod:"منتجات", t_low:"تحت الحد الأدنى", t_out:"نفدت الكمية",
+    val_ing:"قيمة المواد الخام", val_prod:"قيمة المنتجات (بسعر البيع)",
+    low_title:"يحتاج طلب أو تصنيع", low_none:"كل الأصناف فوق الحد الأدنى.",
+    recent:"آخر الحركات", made_week:"الأكثر تصنيعاً هذا الأسبوع",
+    name:"الاسم", cat:"الفئة", avail:"المتوفر", min:"الحد الأدنى", cost:"التكلفة/وحدة",
+    price:"سعر البيع", barcode:"الباركود", acts:"إجراءات", qty:"الكمية", unit:"الوحدة",
+    date:"التاريخ", by:"بواسطة", note:"ملاحظة", item:"الصنف", type:"الحركة", recipe:"الوصفة",
+    add_ing:"إضافة مادة خام", add_prod:"إضافة منتج", edit:"تعديل", del:"حذف", more:"المزيد",
+    receive:"استلام", waste:"هدر", adjust:"تعديل كمية", sell:"بيع / استخدام", label:"ملصق باركود",
+    search:"ابحث بالاسم أو الباركود…", low_only:"الناقص فقط", none:"لا توجد بيانات بعد.",
+    save:"حفظ", cancel:"إلغاء", confirm:"تأكيد", close:"إغلاق", print:"طباعة", excel:"تصدير إكسل",
+    name_ar:"الاسم بالعربي", name_en:"الاسم بالإنجليزي", cat_ar:"الفئة (عربي)", cat_en:"الفئة (إنجليزي)",
+    unit_ar:"الوحدة (عربي)", unit_en:"الوحدة (إنجليزي)", opening:"الكمية الافتتاحية",
+    gen:"توليد", scan:"مسح بالكاميرا", photo:"صورة الصنف (اختياري)", add_photo:"التقاط أو رفع صورة",
+    change_photo:"تغيير الصورة", del_photo:"حذف الصورة",
+    recipe_hint:"كمية كل مادة خام لتصنيع وحدة واحدة من المنتج.",
+    add_line:"إضافة مكوّن", no_recipe:"بدون وصفة",
+    make_sub:"يختار الشيف المنتج والكمية، والنظام يخصم المواد الخام ويضيف الكمية المصنّعة.",
+    pick_prod:"المنتج", make_qty:"الكمية المراد تصنيعها", need:"المطلوب", have:"المتوفر",
+    enough:"كافٍ", short:"ناقص", make_go:"تأكيد التصنيع", make_hist:"سجل التصنيع",
+    make_short:"المواد الخام لا تكفي لهذه الكمية.", make_norec:"هذا المنتج بدون وصفة — عدّله وأضف المكوّنات أولاً.",
+    m_receive:"استلام (وارد)", m_make_out:"استُخدم في التصنيع", m_make_in:"تم تصنيعه (وارد)",
+    m_sell:"بيع / استخدام", m_waste:"هدر", m_adjust:"تعديل جرد",
+    all:"الكل", from:"من", to:"إلى", rep_title:"تقرير المخزون", rep_at:"أُنشئ في",
+    rep_sum:"ملخص المخزون", rep_low:"تنبيهات النقص", rep_ing:"مخزون المواد الخام",
+    rep_prod:"مخزون المنتجات", rep_moves:"حركة المخزون",
+    who_q:"مين يشتغل الحين؟", who_hint:"اسمك يُسجَّل مع كل حركة عشان تعرفون مين سوّى إيش.",
+    who_name:"الاسم", who_role:"الوظيفة", role_admin:"مدير", role_chef:"شيف", role_staff:"موظف",
+    start:"ابدأ", change_user:"تغيير المستخدم",
+    staff:"فريق العمل", add_staff:"إضافة موظف", currency:"العملة", shop:"اسم المحل",
+    set_sub:"إعدادات المحل وفريق العمل وصيانة السجلات.",
+    cleanup:"حذف الحركات الأقدم من 3 أشهر", cleanup_done:"تم حذف السجلات القديمة.",
+    saved:"تم الحفظ", deleted:"تم الحذف", done:"تمت العملية",
+    err_qty:"اكتب كمية أكبر من صفر.", err_stock:"الكمية المتوفرة أقل من المطلوب.",
+    err_name:"الاسم بالعربي والوحدة مطلوبة.", err_dup:"الباركود مستخدم لصنف ثاني.",
+    del_q:"متأكد من حذف هذا الصنف؟ حركاته السابقة تبقى في السجل.",
+    conn:"جاري الاتصال بقاعدة البيانات…",
+    nodb:"لا يمكن الوصول إلى البيانات في هذا العرض. افتح الصفحة من رابطها الأصلي في claude.ai.",
+    demo:"هذه أصناف تجريبية للتجربة — احذفها وأدخل أصنافك الحقيقية متى ما جهزت.",
+    demo_ok:"فهمت",
+    no_cam:"الكاميرا غير متاحة في المتصفح هنا. استخدم قارئ باركود أو اكتب الرقم يدوياً.",
+    scan_hint:"وجّه الكاميرا نحو الباركود",
+    photo_big:"الصورة كبيرة — جرّب صورة أوضح وأصغر.",
+    dl_no:"التحميل غير متاح في هذا العرض.", dl_ok:"تم تجهيز الملف.",
+    lang:"العربية", print_hint:"استخدم طباعة المتصفح إذا ما فتحت نافذة الطباعة."
+  },
+  en:{
+    app:"Kitchen Stock",
+    nav_dash:"Dashboard", nav_ing:"Ingredients", nav_prod:"Products", nav_make:"Production",
+    nav_moves:"Stock Movements", nav_rep:"Reports", nav_set:"Settings",
+    dash_sub:"A quick read on stock levels and what needs attention today.",
+    t_ing:"Ingredients", t_prod:"Products", t_low:"Below minimum", t_out:"Out of stock",
+    val_ing:"Ingredient value", val_prod:"Product value (at retail)",
+    low_title:"Needs ordering or production", low_none:"Everything is above its minimum.",
+    recent:"Latest movements", made_week:"Most produced this week",
+    name:"Name", cat:"Category", avail:"In stock", min:"Minimum", cost:"Cost/unit",
+    price:"Price", barcode:"Barcode", acts:"Actions", qty:"Quantity", unit:"Unit",
+    date:"Date", by:"By", note:"Note", item:"Item", type:"Movement", recipe:"Recipe",
+    add_ing:"Add ingredient", add_prod:"Add product", edit:"Edit", del:"Delete", more:"More",
+    receive:"Receive", waste:"Waste", adjust:"Adjust", sell:"Sell / use", label:"Barcode label",
+    search:"Search by name or barcode…", low_only:"Low stock only", none:"Nothing here yet.",
+    save:"Save", cancel:"Cancel", confirm:"Confirm", close:"Close", print:"Print", excel:"Export to Excel",
+    name_ar:"Name (Arabic)", name_en:"Name (English)", cat_ar:"Category (Arabic)", cat_en:"Category (English)",
+    unit_ar:"Unit (Arabic)", unit_en:"Unit (English)", opening:"Opening quantity",
+    gen:"Generate", scan:"Scan with camera", photo:"Item photo (optional)", add_photo:"Take or upload a photo",
+    change_photo:"Change photo", del_photo:"Remove photo",
+    recipe_hint:"How much of each ingredient makes one unit of this product.",
+    add_line:"Add ingredient", no_recipe:"No recipe",
+    make_sub:"The chef picks a product and a quantity; the system deducts ingredients and adds the finished stock.",
+    pick_prod:"Product", make_qty:"Quantity to produce", need:"Needed", have:"Available",
+    enough:"Enough", short:"Short", make_go:"Confirm production", make_hist:"Production history",
+    make_short:"Not enough ingredients for this quantity.", make_norec:"This product has no recipe — edit it and add ingredients first.",
+    m_receive:"Received (in)", m_make_out:"Used in production", m_make_in:"Produced (in)",
+    m_sell:"Sold / used", m_waste:"Waste", m_adjust:"Stock adjustment",
+    all:"All", from:"From", to:"To", rep_title:"Inventory report", rep_at:"Generated",
+    rep_sum:"Inventory summary", rep_low:"Low stock alerts", rep_ing:"Ingredient stock",
+    rep_prod:"Product stock", rep_moves:"Stock movements",
+    who_q:"Who's working now?", who_hint:"Your name is recorded with every movement so the team knows who did what.",
+    who_name:"Name", who_role:"Role", role_admin:"Manager", role_chef:"Chef", role_staff:"Staff",
+    start:"Start", change_user:"Switch user",
+    staff:"Team", add_staff:"Add person", currency:"Currency", shop:"Shop name",
+    set_sub:"Shop details, your team, and record housekeeping.",
+    cleanup:"Delete movements older than 3 months", cleanup_done:"Old records deleted.",
+    saved:"Saved", deleted:"Deleted", done:"Done",
+    err_qty:"Enter a quantity greater than zero.", err_stock:"There isn't that much in stock.",
+    err_name:"Arabic name and unit are required.", err_dup:"That barcode belongs to another item.",
+    del_q:"Delete this item? Its past movements stay in the log.",
+    conn:"Connecting to the database…",
+    nodb:"Data isn't reachable in this view. Open the page from its own link on claude.ai.",
+    demo:"These are example items so you can try things out — delete them and enter your real stock when you're ready.",
+    demo_ok:"Got it",
+    no_cam:"The camera isn't available in this browser view. Use a barcode reader or type the number.",
+    scan_hint:"Point the camera at the barcode",
+    photo_big:"That photo is too large — try a smaller, clearer one.",
+    dl_no:"Downloads aren't available in this view.", dl_ok:"Your file is ready.",
+    lang:"English", print_hint:"Use your browser's print if the print window doesn't open."
+  }
+};
+const MTYPES = ["receive","make_out","make_in","sell","waste","adjust"];
+const MLABEL = {receive:"m_receive",make_out:"m_make_out",make_in:"m_make_in",sell:"m_sell",waste:"m_waste",adjust:"m_adjust"};
+
+/* ---------------------------------------------------------------- utils */
+const $ = (id)=>document.getElementById(id);
+function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v);}catch(e){ return null; } }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function num(n){ const v=Math.round(Number(n||0)*1000)/1000; return v.toLocaleString("en-US",{maximumFractionDigits:3}); }
+function money(n){ return num(n) + (state.settings.currency ? " "+state.settings.currency : ""); }
+function uid(p){ return p+"_"+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function dayKey(d){ const x=d||new Date(); return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"); }
+function shiftDays(n){ const d=new Date(); d.setDate(d.getDate()+n); return dayKey(d); }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function t(k){ return (STR[state.lang]&&STR[state.lang][k]) || STR.ar[k] || k; }
+function nm(o){ if(!o) return ""; return state.lang==="ar" ? (o.name_ar||o.name_en||"") : (o.name_en||o.name_ar||""); }
+function un(o){ if(!o) return ""; return state.lang==="ar" ? (o.unit_ar||o.unit_en||"") : (o.unit_en||o.unit_ar||""); }
+function ct(o){ if(!o) return ""; return state.lang==="ar" ? (o.cat_ar||o.cat_en||"") : (o.cat_en||o.cat_ar||""); }
+function timeOf(iso){ try{ return new Date(iso).toLocaleString(state.lang==="ar"?"ar-u-nu-latn":"en-GB",{dateStyle:"short",timeStyle:"short"}); }catch(e){ return iso; } }
+function toast(msg){ const w=$("toast"); w.innerHTML='<div>'+esc(msg)+'</div>'; clearTimeout(toast._t); toast._t=setTimeout(()=>{w.innerHTML="";},2600); }
+
+/* ---------------------------------------------------- EAN-13 barcode SVG */
+const EAN_L=["0001101","0011001","0010011","0111101","0100011","0110001","0101111","0111011","0110111","0001011"];
+const EAN_G=["0100111","0110011","0011011","0100001","0011101","0111001","0000101","0010001","0001001","0010111"];
+const EAN_R=EAN_L.map(s=>s.split("").map(c=>c==="0"?"1":"0").join(""));
+const EAN_P=["LLLLLL","LLGLGG","LLGGLG","LLGGGL","LGLLGG","LGGLLG","LGGGLL","LGLGLG","LGLGGL","LGGLGL"];
+function eanCheck(d12){ let s=0; for(let i=0;i<12;i++) s+=Number(d12[i])*(i%2===0?1:3); return (10-(s%10))%10; }
+function genBarcode(){ let d=""; for(let i=0;i<12;i++) d+=Math.floor(Math.random()*10); return d+eanCheck(d); }
+function normalizeCode(code){
+  const c=String(code||"").replace(/\D/g,"");
+  if(c.length===13) return c;
+  if(c.length===12) return "0"+c;           // UPC-A
+  return null;
+}
+function barcodeSVG(code){
+  const c=normalizeCode(code);
+  if(!c || String(c[12])!==String(eanCheck(c.slice(0,12)))) return null;
+  const par=EAN_P[Number(c[0])];
+  let mods="101";
+  for(let i=1;i<=6;i++) mods += (par[i-1]==="L"?EAN_L:EAN_G)[Number(c[i])];
+  mods+="01010";
+  for(let i=7;i<=12;i++) mods += EAN_R[Number(c[i])];
+  mods+="101";
+  const M=2.2, H=64, top=8, pad=14, guardH=H+9;
+  const W=mods.length*M+pad*2;
+  const isGuard=(i)=> (i<3)||(i>=45&&i<50)||(i>=92);
+  let bars="";
+  for(let i=0;i<mods.length;i++){
+    if(mods[i]==="1") bars+='<rect x="'+(pad+i*M).toFixed(2)+'" y="'+top+'" width="'+M.toFixed(2)+'" height="'+(isGuard(i)?guardH:H)+'" fill="#000"/>';
+  }
+  const ty=top+guardH+13;
+  const txt='<text x="'+(pad-9)+'" y="'+ty+'" font-family="monospace" font-size="13" fill="#000">'+c[0]+'</text>'
+    +'<text x="'+(pad+3*M+21*M/2)+'" y="'+ty+'" font-family="monospace" font-size="13" fill="#000" text-anchor="middle" letter-spacing="2">'+c.slice(1,7)+'</text>'
+    +'<text x="'+(pad+50*M+21*M/2)+'" y="'+ty+'" font-family="monospace" font-size="13" fill="#000" text-anchor="middle" letter-spacing="2">'+c.slice(7)+'</text>';
+  return '<svg viewBox="0 0 '+W.toFixed(2)+' '+(ty+6)+'" width="'+Math.min(W*1.6,300)+'" role="img" aria-label="'+c+'" style="background:#fff;border-radius:6px;padding:4px" xmlns="http://www.w3.org/2000/svg">'+bars+txt+'</svg>';
+}
+
+/* ------------------------------------------------------- xlsx (no deps) */
+const CRC_T=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(u8){ let c=0xFFFFFFFF; for(let i=0;i<u8.length;i++) c=CRC_T[(c^u8[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function zipStore(files){
+  const enc=new TextEncoder(); const chunks=[]; const central=[]; let off=0;
+  const u16=n=>[n&255,(n>>8)&255], u32=n=>[n&255,(n>>8)&255,(n>>16)&255,(n>>>24)&255];
+  files.forEach(f=>{
+    const nameB=enc.encode(f.name), data=f.data instanceof Uint8Array?f.data:enc.encode(f.data);
+    const crc=crc32(data);
+    const lh=[].concat(u32(0x04034b50),u16(20),u16(0x0800),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(nameB.length),u16(0));
+    chunks.push(new Uint8Array(lh),nameB,data);
+    central.push([].concat(u32(0x02014b50),u16(20),u16(20),u16(0x0800),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(nameB.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(off)));
+    central[central.length-1].nameB=nameB;
+    off += lh.length+nameB.length+data.length;
+  });
+  const cdStart=off; const cdParts=[];
+  central.forEach(c=>{ const a=new Uint8Array(c); cdParts.push(a,c.nameB); off+=a.length+c.nameB.length; });
+  const eocd=new Uint8Array([].concat(u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),u32(off-cdStart),u32(cdStart),u16(0)));
+  return new Blob(chunks.concat(cdParts,[eocd]),{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+function colRef(i){ let s="",n=i+1; while(n>0){ const r=(n-1)%26; s=String.fromCharCode(65+r)+s; n=Math.floor((n-1)/26); } return s; }
+function sheetXml(rows){
+  let out='<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>';
+  rows.forEach((row,r)=>{
+    out+='<row r="'+(r+1)+'">';
+    row.forEach((cell,c)=>{
+      const ref=colRef(c)+(r+1);
+      if(typeof cell==="number" && isFinite(cell)) out+='<c r="'+ref+'"><v>'+cell+'</v></c>';
+      else if(cell!==null && cell!==undefined && cell!=="") out+='<c r="'+ref+'" t="inlineStr"><is><t xml:space="preserve">'+esc(cell)+'</t></is></c>';
+    });
+    out+='</row>';
+  });
+  return out+'</sheetData></worksheet>';
+}
+function buildXlsx(sheets){
+  const names=sheets.map((s,i)=>(s.name||("Sheet"+(i+1))).replace(/[\\\/\?\*\[\]:]/g,"").slice(0,31)||("Sheet"+(i+1)));
+  const files=[
+    {name:"[Content_Types].xml",data:'<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>'+sheets.map((s,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join("")+'<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/></Types>'},
+    {name:"_rels/.rels",data:'<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+    {name:"xl/workbook.xml",data:'<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+names.map((n,i)=>'<sheet name="'+esc(n)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>').join("")+'</sheets></workbook>'},
+    {name:"xl/_rels/workbook.xml.rels",data:'<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+names.map((n,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join("")+'</Relationships>'}
+  ];
+  sheets.forEach((s,i)=>files.push({name:"xl/worksheets/sheet"+(i+1)+".xml",data:sheetXml(s.rows)}));
+  return zipStore(files);
+}
+async function saveFile(filename,blob){
+  if(!state.downloads){ toast(t("dl_no")); return; }
+  try{ await state.downloads.save({filename:filename,data:blob}); }
+  catch(e){ if(e && e.code==="declined") return; toast(t("dl_no")); }
+}
+
+/* ---------------------------------------------------------------- state */
+const state = {
+  lang: ls("ks_lang")||"ar",
+  tab: "dash",
+  ready:false, db:null, downloads:null, dbFailed:false,
+  ingredients:[], products:[], staff:[], moves:[], settings:{currency:"ر.س",shop_ar:"",shop_en:""},
+  me: (()=>{ try{ return JSON.parse(ls("ks_me")||"null"); }catch(e){ return null; } })(),
+  search:"", lowOnly:false, mFilter:"", makePid:"", makeQty:"",
+  repFrom: shiftDays(-7), repTo: dayKey(),
+  repMoves:null, focus:null, hideDemo: ls("ks_demo")==="1"
+};
+const deviceId = (()=>{ let d=ls("ks_dev"); if(!d){ d="dev_"+Math.random().toString(36).slice(2,10); ls("ks_dev",d); } return d; })();
+
+function applyDir(){
+  document.documentElement.lang = state.lang;
+  document.documentElement.dir = state.lang==="ar" ? "rtl" : "ltr";
+}
+
+/* ------------------------------------------------------------- db layer */
+async function initDb(){
+  let db=null;
+  const c = window.claude;
+  if(!c || typeof c.use!=="function"){ state.dbFailed=true; state.ready=true; render(); return; }
+  try{ db = await c.use("db"); }catch(e){ db=null; }
+  try{ state.downloads = await c.use("downloads"); }catch(e){ state.downloads=null; }
+  if(!db){ state.dbFailed=true; state.ready=true; render(); return; }
+  state.db=db;
+  const on=(path,setter,q)=>{
+    const ref = q? q(db.collection(path)) : db.collection(path);
+    ref.onSnapshot(snap=>{
+      setter(snap.docs.map(d=>Object.assign({id:d.id},d.data())));
+      state.ready=true; render();
+    }, err=>{ if(err.code==="revoked"||err.code==="not_granted"){ state.dbFailed=true; } state.ready=true; render(); });
+  };
+  on("ingredients", v=>state.ingredients=v.sort((a,b)=>String(a.name_ar||"").localeCompare(String(b.name_ar||""),"ar")));
+  on("products", v=>state.products=v.sort((a,b)=>String(a.name_ar||"").localeCompare(String(b.name_ar||""),"ar")));
+  on("staff", v=>state.staff=v);
+  on("movements", v=>{
+    const out=[];
+    v.forEach(d=>(d.entries||[]).forEach(e=>out.push(e)));
+    state.moves = out.sort((a,b)=>String(b.at||"").localeCompare(String(a.at||"")));
+  }, c=>c.orderBy("date","desc").limit(30));
+  db.doc("meta/settings").onSnapshot(s=>{
+    if(s.exists) state.settings=Object.assign(state.settings,s.data());
+    state.ready=true; render();
+  }, ()=>{});
+  setTimeout(()=>{ if(!state.ready){ state.ready=true; render(); } },4000);
+}
+
+/* append movement entries into today's day-bucket, guarded by a short lease */
+async function logMoves(entries){
+  if(!state.db || !entries.length) return;
+  const key=dayKey(), ref=state.db.doc("movements/"+key);
+  let got=false;
+  for(let i=0;i<4 && !got;i++){
+    try{ const r=await ref.acquire({holder:deviceId,ttlMs:4000}); got=!!r.acquired; }catch(e){ break; }
+    if(!got) await sleep(220);
+  }
+  let prev=[];
+  try{ const s=await ref.get(); if(s.exists) prev=s.data().entries||[]; }catch(e){}
+  const stamped=entries.map(e=>Object.assign({id:uid("mv"),at:new Date().toISOString(),by:(state.me&&state.me.name)||""},e));
+  await ref.set({date:key,entries:prev.concat(stamped)});
+}
+function dbErr(e){
+  const c=e&&e.code;
+  if(c==="quota_exceeded") return state.lang==="ar"?"امتلأت قاعدة البيانات — احذف السجلات القديمة من الإعدادات.":"The database is full — delete old records from Settings.";
+  if(c==="resource_exhausted") return state.lang==="ar"?"العمليات كثيرة بسرعة — انتظر لحظة وجرّب مرة ثانية.":"Too many operations at once — wait a moment and try again.";
+  return state.lang==="ar"?"ما تمت العملية — جرّب مرة ثانية.":"That didn't go through — try again.";
+}
+async function guard(fn,okMsg){
+  try{ await fn(); if(okMsg) toast(okMsg); }
+  catch(e){ toast(dbErr(e)); }
+}
+
+/* ------------------------------------------------------------ selectors */
+const isLow=(x)=>Number(x.stock||0) <= Number(x.min||0);
+const isOut=(x)=>Number(x.stock||0) <= 0;
+function lowItems(){ return state.ingredients.filter(isLow).concat(state.products.filter(isLow)); }
+function findIng(id){ return state.ingredients.find(x=>x.id===id); }
+function matches(x,q){
+  if(!q) return true; const s=q.trim().toLowerCase();
+  return String(x.name_ar||"").toLowerCase().includes(s) || String(x.name_en||"").toLowerCase().includes(s) || String(x.barcode||"").includes(s);
+}
+function barcodeTaken(code,exceptId){
+  if(!code) return false;
+  return state.ingredients.concat(state.products).some(x=>x.barcode===code && x.id!==exceptId);
+}
+function can(what){
+  const r=(state.me&&state.me.role)||"staff";
+  if(what==="manage") return r==="admin"||r==="chef";
+  if(what==="produce") return r==="admin"||r==="chef";
+  if(what==="delete") return r==="admin";
+  return true;
+}
+
+/* ---------------------------------------------------------------- views */
+function railHtml(){
+  const tabs=[["dash","nav_dash","▤"],["ing","nav_ing","◇"],["prod","nav_prod","◆"],["make","nav_make","⚙"],["moves","nav_moves","↕"],["rep","nav_rep","▦"],["set","nav_set","⚙"]];
+  const lows=lowItems().length;
+  return '<div class="brand"><span class="mark">🍳</span>'+esc(t("app"))+'</div>'
+    + tabs.map(([id,key,ic])=>'<button class="navbtn" data-act="tab" data-v="'+id+'" aria-current="'+(state.tab===id)+'"><span aria-hidden="true">'+ic+'</span><span>'+esc(t(key))+'</span>'
+      + (id==="ing"&&lows?'<span class="n">'+lows+'</span>':'') + '</button>').join("")
+    + '<div class="rail-foot">'+esc(state.settings.shop_ar||state.settings.shop_en||"")+'</div>';
+}
+function topHtml(){
+  const me=state.me;
+  return '<div class="seg">'
+    + '<button data-act="lang" data-v="ar" aria-pressed="'+(state.lang==="ar")+'">العربية</button>'
+    + '<button data-act="lang" data-v="en" aria-pressed="'+(state.lang==="en")+'">English</button></div>'
+    + '<button class="who" data-act="who">'+esc(me?me.name:t("who_q"))
+    + (me?'<span class="role">'+esc(t("role_"+me.role))+'</span>':'')+'</button>';
+}
+function stockPill(x){
+  const cls = isOut(x)?"pill-crit":(isLow(x)?"pill-warn":"pill-ok");
+  return '<span class="pill '+cls+'">'+num(x.stock)+" "+esc(un(x))+'</span>';
+}
+function rowClass(x){ return isOut(x)?"out":(isLow(x)?"low":""); }
+function nameCell(x){
+  return '<div class="name">'+(x.photo?'<img class="thumb" src="'+esc(x.photo)+'" alt="">':'')
+    +'<span><b>'+esc(nm(x))+'</b>'+(ct(x)?'<small>'+esc(ct(x))+'</small>':'')+'</span></div>';
+}
+
+function viewDash(){
+  const ing=state.ingredients, pr=state.products;
+  const lows=lowItems(), outs=ing.concat(pr).filter(isOut);
+  const vIng=ing.reduce((s,x)=>s+Number(x.stock||0)*Number(x.cost||0),0);
+  const vPr=pr.reduce((s,x)=>s+Number(x.stock||0)*Number(x.price||0),0);
+  const weekAgo=shiftDays(-7);
+  const made={};
+  state.moves.filter(m=>m.type==="make_in" && String(m.at||"").slice(0,10)>=weekAgo)
+    .forEach(m=>{ const k=m.item_id; made[k]=made[k]||{n:0,ar:m.item_ar,en:m.item_en,u:m.unit}; made[k].n+=Number(m.qty||0); });
+  const top=Object.values(made).sort((a,b)=>b.n-a.n).slice(0,5);
+  return '<div class="phead"><div><h1>'+esc(t("nav_dash"))+'</h1><p>'+esc(t("dash_sub"))+'</p></div></div>'
+  + (state.hideDemo?'':'<div class="note"><span>'+esc(t("demo"))+'</span><button class="btn btn-sm" data-act="hidedemo">'+esc(t("demo_ok"))+'</button></div>')
+  + '<div class="tiles">'
+    + tile(t("t_ing"),ing.length,"")
+    + tile(t("t_prod"),pr.length,"")
+    + tile(t("t_low"),lows.length,lows.length?"warn":"")
+    + tile(t("t_out"),outs.length,outs.length?"crit":"")
+    + tile(t("val_ing"),money(vIng),"")
+    + tile(t("val_prod"),money(vPr),"")
+  + '</div>'
+  + '<div class="two">'
+    + '<section class="panel"><header><h2>'+esc(t("low_title"))+'</h2>'
+      + (lows.length?'<span class="pill pill-warn">'+lows.length+'</span>':'')+'</header>'
+      + (lows.length ? '<div class="scroll"><table><thead><tr><th>'+esc(t("name"))+'</th><th>'+esc(t("avail"))+'</th><th>'+esc(t("min"))+'</th><th></th></tr></thead><tbody>'
+        + lows.map(x=>'<tr class="'+rowClass(x)+'"><td>'+nameCell(x)+'</td><td>'+stockPill(x)+'</td><td>'+num(x.min)+" "+esc(un(x))+'</td>'
+          + '<td class="rowacts">'+(x.recipe?'<button class="btn btn-sm" data-act="makefrom" data-id="'+x.id+'">'+esc(t("nav_make"))+'</button>'
+              :'<button class="btn btn-sm" data-act="receive" data-id="'+x.id+'">'+esc(t("receive"))+'</button>')+'</td></tr>').join("")
+        + '</tbody></table></div>' : '<div class="empty">'+esc(t("low_none"))+'</div>')
+    + '</section>'
+    + '<section class="panel"><header><h2>'+esc(t("made_week"))+'</h2></header>'
+      + (top.length?'<div class="scroll"><table><tbody>'+top.map(x=>'<tr><td>'+esc(state.lang==="ar"?x.ar:x.en)+'</td><td style="text-align:end">'+num(x.n)+" "+esc(x.u||"")+'</td></tr>').join("")+'</tbody></table></div>'
+        : '<div class="empty">'+esc(t("none"))+'</div>')
+    + '<header style="border-top:1px solid var(--line)"><h2>'+esc(t("recent"))+'</h2></header>'
+      + (state.moves.length?'<div class="scroll"><table><tbody>'+state.moves.slice(0,6).map(m=>
+          '<tr><td>'+esc(state.lang==="ar"?m.item_ar:m.item_en)+'<small style="display:block;color:var(--ink-2);font-size:.74rem">'+esc(t(MLABEL[m.type]||"m_adjust"))+'</small></td>'
+          +'<td style="text-align:end;white-space:nowrap">'+num(m.qty)+" "+esc(m.unit||"")+'</td></tr>').join("")+'</tbody></table></div>'
+        : '<div class="empty">'+esc(t("none"))+'</div>')
+    + '</section>'
+  + '</div>';
+}
+function tile(k,v,cls){ return '<div class="tile '+(cls||"")+'"><div class="k">'+esc(k)+'</div><div class="v">'+esc(String(v))+'</div></div>'; }
+
+function itemsTable(kind){
+  const isIng = kind==="ing";
+  let rows = (isIng?state.ingredients:state.products).filter(x=>matches(x,state.search));
+  if(state.lowOnly) rows=rows.filter(isLow);
+  const head='<tr><th>'+esc(t("name"))+'</th><th>'+esc(t("avail"))+'</th><th>'+esc(t("min"))+'</th>'
+    + '<th>'+esc(isIng?t("cost"):t("price"))+'</th>'
+    + (isIng?'':'<th>'+esc(t("recipe"))+'</th>')
+    + '<th class="no-print">'+esc(t("acts"))+'</th></tr>';
+  const body = rows.length ? rows.map(x=>{
+    const primary = isIng
+      ? '<button class="btn btn-sm" data-act="receive" data-id="'+x.id+'">'+esc(t("receive"))+'</button>'
+      : '<button class="btn btn-sm" data-act="sell" data-id="'+x.id+'">'+esc(t("sell"))+'</button>';
+    return '<tr class="'+rowClass(x)+'"><td>'+nameCell(x)+'</td>'
+      + '<td>'+stockPill(x)+'</td><td>'+num(x.min)+" "+esc(un(x))+'</td>'
+      + '<td>'+money(isIng?x.cost:x.price)+'</td>'
+      + (isIng?'':'<td>'+((x.recipe&&x.recipe.length)?'<span class="pill pill-mute">'+x.recipe.length+'</span>':'<span class="pill pill-mute">'+esc(t("no_recipe"))+'</span>')+'</td>')
+      + '<td class="rowacts no-print">'+primary
+      + '<button class="btn btn-sm" data-act="waste" data-id="'+x.id+'">'+esc(t("waste"))+'</button>'
+      + '<button class="btn btn-sm btn-ghost" data-act="sheet" data-id="'+x.id+'" aria-label="'+esc(t("more"))+'">⋯</button></td></tr>';
+  }).join("") : '<tr><td colspan="6"><div class="empty">'+esc(t("none"))+'</div></td></tr>';
+  return '<div class="scroll"><table><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
+}
+function viewItems(kind){
+  const isIng=kind==="ing";
+  return '<div class="phead"><div><h1>'+esc(isIng?t("nav_ing"):t("nav_prod"))+'</h1>'
+    + '<p>'+esc(isIng ? (state.lang==="ar"?"كل ما يدخل المطبخ: طحين، حليب، قهوة… مع حد أدنى لكل صنف ينبهك قبل ما ينفد.":"Everything that comes into the kitchen — flour, milk, coffee — each with a minimum that warns you before it runs out.")
+      : (state.lang==="ar"?"ما يصنعه الشيف ويُباع للزبون، وكل منتج له وصفة تُخصم من المواد الخام.":"What the chef makes and the shop sells; each product has a recipe that draws from your ingredients."))+'</p></div>'
+    + '<div class="acts">'
+      + (can("manage")?'<button class="btn btn-primary" data-act="'+(isIng?"newing":"newprod")+'">+ '+esc(isIng?t("add_ing"):t("add_prod"))+'</button>':'')
+      + '<button class="btn" data-act="excelitems" data-v="'+kind+'">'+esc(t("excel"))+'</button>'
+      + '<button class="btn" data-act="print">'+esc(t("print"))+'</button>'
+    + '</div></div>'
+  + '<div class="toolbar no-print">'
+    + '<div class="search"><input type="search" id="q" data-input="search" placeholder="'+esc(t("search"))+'" value="'+esc(state.search)+'"></div>'
+    + '<label class="check"><input type="checkbox" data-input="lowonly" '+(state.lowOnly?"checked":"")+'> '+esc(t("low_only"))+'</label>'
+    + '<button class="btn btn-sm" data-act="camsearch">'+esc(t("scan"))+'</button>'
+  + '</div>'
+  + '<section class="panel">'+itemsTable(kind)+'</section>';
+}
+
+function viewMake(){
+  const p = state.products.find(x=>x.id===state.makePid);
+  const qty = Number(state.makeQty||0);
+  let lines=[], canGo=false;
+  if(p && p.recipe && p.recipe.length && qty>0){
+    lines = p.recipe.map(r=>{
+      const ing=findIng(r.id); const need=Number(r.qty||0)*qty; const have=Number(ing?ing.stock:0);
+      return {ing:ing,need:need,have:have,ok:ing&&have>=need};
+    });
+    canGo = lines.every(l=>l.ok);
+  }
+  const hist = state.moves.filter(m=>m.type==="make_in").slice(0,12);
+  return '<div class="phead"><div><h1>'+esc(t("nav_make"))+'</h1><p>'+esc(t("make_sub"))+'</p></div></div>'
+  + '<div class="two">'
+  + '<section class="panel"><div class="body">'
+    + '<div class="field"><label class="f" for="mp">'+esc(t("pick_prod"))+'</label>'
+      + '<select id="mp" data-input="makepid"><option value="">—</option>'
+      + state.products.map(x=>'<option value="'+x.id+'" '+(x.id===state.makePid?"selected":"")+'>'+esc(nm(x))+'</option>').join("")+'</select></div>'
+    + '<div class="field"><label class="f" for="mq">'+esc(t("make_qty"))+(p?" ("+esc(un(p))+")":"")+'</label>'
+      + '<input id="mq" type="number" min="1" step="1" data-input="makeqty" value="'+esc(state.makeQty)+'"></div>'
+    + (p && (!p.recipe||!p.recipe.length) ? '<div class="warnbar">'+esc(t("make_norec"))+'</div>' : '')
+    + (lines.length ? '<div class="scroll" style="margin:12px 0"><table><thead><tr><th>'+esc(t("item"))+'</th><th>'+esc(t("need"))+'</th><th>'+esc(t("have"))+'</th><th></th></tr></thead><tbody>'
+        + lines.map(l=>'<tr class="'+(l.ok?"":"out")+'"><td>'+esc(l.ing?nm(l.ing):"—")+'</td><td>'+num(l.need)+" "+esc(l.ing?un(l.ing):"")+'</td><td>'+num(l.have)+" "+esc(l.ing?un(l.ing):"")+'</td>'
+          +'<td><span class="pill '+(l.ok?"pill-ok":"pill-crit")+'">'+esc(l.ok?t("enough"):t("short"))+'</span></td></tr>').join("")
+        + '</tbody></table></div>' : '')
+    + (lines.length&&!canGo ? '<div class="critbar">'+esc(t("make_short"))+'</div>' : '')
+    + '<div class="acts" style="margin-top:12px"><button class="btn btn-primary" data-act="produce" '+((canGo&&can("produce"))?"":"disabled")+'>'+esc(t("make_go"))+'</button></div>'
+  + '</div></section>'
+  + '<section class="panel"><header><h2>'+esc(t("make_hist"))+'</h2></header>'
+    + (hist.length?'<div class="scroll"><table><thead><tr><th>'+esc(t("date"))+'</th><th>'+esc(t("item"))+'</th><th>'+esc(t("qty"))+'</th><th>'+esc(t("by"))+'</th></tr></thead><tbody>'
+      + hist.map(m=>'<tr><td style="white-space:nowrap">'+esc(timeOf(m.at))+'</td><td>'+esc(state.lang==="ar"?m.item_ar:m.item_en)+'</td><td>'+num(m.qty)+" "+esc(m.unit||"")+'</td><td>'+esc(m.by||"—")+'</td></tr>').join("")
+      + '</tbody></table></div>':'<div class="empty">'+esc(t("none"))+'</div>')
+  + '</section></div>';
+}
+
+function movesTable(list){
+  if(!list.length) return '<div class="empty">'+esc(t("none"))+'</div>';
+  return '<div class="scroll"><table><thead><tr><th>'+esc(t("date"))+'</th><th>'+esc(t("item"))+'</th><th>'+esc(t("type"))+'</th><th>'+esc(t("qty"))+'</th><th>'+esc(t("by"))+'</th><th>'+esc(t("note"))+'</th></tr></thead><tbody>'
+    + list.map(m=>{
+      const cls = m.type==="waste"?"pill-crit":(m.type==="make_in"||m.type==="receive"?"pill-ok":"pill-mute");
+      return '<tr><td style="white-space:nowrap">'+esc(timeOf(m.at))+'</td><td>'+esc(state.lang==="ar"?m.item_ar:m.item_en)+'</td>'
+        + '<td><span class="pill '+cls+'">'+esc(t(MLABEL[m.type]||"m_adjust"))+'</span></td>'
+        + '<td>'+num(m.qty)+" "+esc(m.unit||"")+'</td><td>'+esc(m.by||"—")+'</td><td>'+esc(m.note||"—")+'</td></tr>';
+    }).join("")+'</tbody></table></div>';
+}
+function viewMoves(){
+  let list=state.moves;
+  if(state.mFilter) list=list.filter(m=>m.type===state.mFilter);
+  return '<div class="phead"><div><h1>'+esc(t("nav_moves"))+'</h1>'
+    + '<p>'+esc(state.lang==="ar"?"كل حركة دخول أو خروج مسجّلة باسم من سوّاها — آخر 30 يوم.":"Every in and out, recorded with who did it — the last 30 days.")+'</p></div>'
+    + '<div class="acts"><button class="btn" data-act="excelmoves">'+esc(t("excel"))+'</button><button class="btn" data-act="print">'+esc(t("print"))+'</button></div></div>'
+  + '<div class="toolbar no-print"><select data-input="mfilter" style="max-width:260px"><option value="">'+esc(t("all"))+'</option>'
+    + MTYPES.map(x=>'<option value="'+x+'" '+(state.mFilter===x?"selected":"")+'>'+esc(t(MLABEL[x]))+'</option>').join("")+'</select></div>'
+  + '<section class="panel">'+movesTable(list)+'</section>';
+}
+
+function viewRep(){
+  const ing=state.ingredients, pr=state.products, lows=lowItems();
+  const vIng=ing.reduce((s,x)=>s+Number(x.stock||0)*Number(x.cost||0),0);
+  const vPr=pr.reduce((s,x)=>s+Number(x.stock||0)*Number(x.price||0),0);
+  const mv=state.repMoves;
+  const tbl=(rows,cols)=>'<div class="scroll"><table><thead><tr>'+cols.map(c=>'<th>'+esc(c)+'</th>').join("")+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  return '<div class="phead no-print"><div><h1>'+esc(t("nav_rep"))+'</h1>'
+    + '<p>'+esc(state.lang==="ar"?"تقرير جاهز للطباعة أو التصدير إلى إكسل، مع اختيار فترة الحركات.":"A report ready to print or export to Excel, over the period you choose.")+'</p></div>'
+    + '<div class="acts"><button class="btn" data-act="excelrep">'+esc(t("excel"))+'</button><button class="btn btn-primary" data-act="print">'+esc(t("print"))+'</button></div></div>'
+  + '<div class="toolbar no-print">'
+    + '<div><label class="f">'+esc(t("from"))+'</label><input type="date" data-input="repfrom" value="'+esc(state.repFrom)+'"></div>'
+    + '<div><label class="f">'+esc(t("to"))+'</label><input type="date" data-input="repto" value="'+esc(state.repTo)+'"></div>'
+  + '</div>'
+  + '<section class="panel"><div class="body">'
+    + '<h1 style="font-size:1.35rem">'+esc(state.settings.shop_ar||state.settings.shop_en||t("app"))+' — '+esc(t("rep_title"))+'</h1>'
+    + '<p class="eyebrow" style="margin:2px 0 16px">'+esc(t("rep_at"))+": "+esc(timeOf(new Date().toISOString()))+'</p>'
+    + '<h2>'+esc(t("rep_sum"))+'</h2>'
+    + tbl('<tr><td>'+esc(t("t_ing"))+'</td><td>'+ing.length+'</td><td>'+esc(t("val_ing"))+'</td><td>'+esc(money(vIng))+'</td></tr>'
+        + '<tr><td>'+esc(t("t_prod"))+'</td><td>'+pr.length+'</td><td>'+esc(t("val_prod"))+'</td><td>'+esc(money(vPr))+'</td></tr>',["","","",""])
+    + '<h2 style="margin-top:20px">'+esc(t("rep_low"))+'</h2>'
+    + (lows.length?tbl(lows.map(x=>'<tr><td>'+esc(nm(x))+'</td><td>'+num(x.stock)+" "+esc(un(x))+'</td><td>'+num(x.min)+" "+esc(un(x))+'</td></tr>').join(""),[t("name"),t("avail"),t("min")])
+       :'<p style="color:var(--ink-2)">'+esc(t("low_none"))+'</p>')
+    + '<h2 style="margin-top:20px">'+esc(t("rep_ing"))+'</h2>'
+    + tbl(ing.map(x=>'<tr><td>'+esc(nm(x))+'</td><td>'+num(x.stock)+" "+esc(un(x))+'</td><td>'+num(x.min)+'</td><td>'+esc(money(x.cost))+'</td><td class="mono">'+esc(x.barcode||"—")+'</td></tr>').join(""),[t("name"),t("avail"),t("min"),t("cost"),t("barcode")])
+    + '<h2 style="margin-top:20px">'+esc(t("rep_prod"))+'</h2>'
+    + tbl(pr.map(x=>'<tr><td>'+esc(nm(x))+'</td><td>'+num(x.stock)+" "+esc(un(x))+'</td><td>'+num(x.min)+'</td><td>'+esc(money(x.price))+'</td><td class="mono">'+esc(x.barcode||"—")+'</td></tr>').join(""),[t("name"),t("avail"),t("min"),t("price"),t("barcode")])
+    + '<h2 style="margin-top:20px">'+esc(t("rep_moves"))+' ('+esc(state.repFrom)+' → '+esc(state.repTo)+')</h2>'
+    + (mv===null?'<p style="color:var(--ink-2)">'+esc(t("conn"))+'</p>':movesTable(mv))
+  + '</div></section>';
+}
+
+function viewSet(){
+  const s=state.settings;
+  return '<div class="phead"><div><h1>'+esc(t("nav_set"))+'</h1><p>'+esc(t("set_sub"))+'</p></div></div>'
+  + '<div class="two">'
+  + '<section class="panel"><header><h2>'+esc(t("shop"))+'</h2></header><div class="body">'
+    + '<div class="grid2"><div class="field"><label class="f">'+esc(t("shop"))+' — عربي</label><input type="text" id="s_ar" value="'+esc(s.shop_ar||"")+'"></div>'
+    + '<div class="field"><label class="f">'+esc(t("shop"))+' — English</label><input type="text" id="s_en" value="'+esc(s.shop_en||"")+'"></div></div>'
+    + '<div class="field" style="max-width:200px"><label class="f">'+esc(t("currency"))+'</label><input type="text" id="s_cur" value="'+esc(s.currency||"")+'"></div>'
+    + '<button class="btn btn-primary" data-act="savesettings">'+esc(t("save"))+'</button>'
+  + '</div></section>'
+  + '<section class="panel"><header><h2>'+esc(t("staff"))+'</h2>'
+    + (can("delete")?'<button class="btn btn-sm" data-act="addstaff">+ '+esc(t("add_staff"))+'</button>':'')+'</header>'
+    + (state.staff.length?'<div class="scroll"><table><tbody>'+state.staff.map(p=>'<tr><td>'+esc(p.name)+'</td><td><span class="pill pill-mute">'+esc(t("role_"+(p.role||"staff")))+'</span></td>'
+      +'<td class="rowacts">'+(can("delete")?'<button class="btn btn-sm btn-danger" data-act="delstaff" data-id="'+p.id+'">'+esc(t("del"))+'</button>':'')+'</td></tr>').join("")+'</tbody></table></div>'
+      :'<div class="empty">'+esc(t("none"))+'</div>')
+    + '<div class="body" style="border-top:1px solid var(--line)">'
+      + '<button class="btn" data-act="who">'+esc(t("change_user"))+'</button>'
+      + (can("delete")?' <button class="btn btn-danger" data-act="cleanup">'+esc(t("cleanup"))+'</button>':'')
+    + '</div>'
+  + '</section></div>';
+}
+
+function viewHtml(){
+  if(!state.ready) return '<div class="panel"><div class="empty">'+esc(t("conn"))+'</div></div>';
+  if(state.dbFailed) return '<div class="panel"><div class="empty">'+esc(t("nodb"))+'</div></div>';
+  switch(state.tab){
+    case "ing": return viewItems("ing");
+    case "prod": return viewItems("prod");
+    case "make": return viewMake();
+    case "moves": return viewMoves();
+    case "rep": return viewRep();
+    case "set": return viewSet();
+    default: return viewDash();
+  }
+}
+function render(){
+  applyDir();
+  $("rail").innerHTML=railHtml();
+  $("top").innerHTML=topHtml();
+  $("view").innerHTML=viewHtml();
+  if(state.focus){ const el=document.querySelector('[data-input="'+state.focus+'"]'); if(el){ el.focus(); if(el.setSelectionRange&&el.type!=="number"&&el.type!=="date"){ const v=el.value; try{el.setSelectionRange(v.length,v.length);}catch(e){} } } }
+}
+
+/* ---------------------------------------------------------------- modal */
+function openModal(title,bodyHtml,footHtml,wide){
+  $("modalRoot").innerHTML='<div class="scrim" data-scrim><div class="modal '+(wide?"wide":"")+'" role="dialog" aria-modal="true">'
+    +'<header><h2>'+esc(title)+'</h2><button class="x" data-act="closemodal" aria-label="'+esc(t("close"))+'">✕</button></header>'
+    +bodyHtml+(footHtml?'<footer>'+footHtml+'</footer>':'')+'</div></div>';
+}
+function closeModal(){ $("modalRoot").innerHTML=""; stopCam(); }
+const btnCancel = ()=>'<button class="btn" data-act="closemodal">'+t("cancel")+'</button>';
+
+/* --------------------------------------------------------- who / people */
+function whoModal(){
+  const opts = state.staff.map(p=>'<option value="'+esc(p.name)+'|'+esc(p.role||"staff")+'">'+esc(p.name)+' — '+esc(t("role_"+(p.role||"staff")))+'</option>').join("");
+  openModal(t("who_q"),
+    '<p style="color:var(--ink-2);font-size:.86rem;margin-top:0">'+esc(t("who_hint"))+'</p>'
+    + (opts?'<div class="field"><label class="f">'+esc(t("staff"))+'</label><select id="w_pick"><option value="">—</option>'+opts+'</select></div>':'')
+    + '<div class="grid2"><div class="field"><label class="f">'+esc(t("who_name"))+'</label><input type="text" id="w_name" value="'+esc(state.me?state.me.name:"")+'"></div>'
+    + '<div class="field"><label class="f">'+esc(t("who_role"))+'</label><select id="w_role">'
+      + ["admin","chef","staff"].map(r=>'<option value="'+r+'" '+((state.me&&state.me.role===r)?"selected":"")+'>'+esc(t("role_"+r))+'</option>').join("")
+    + '</select></div></div>',
+    btnCancel()+'<button class="btn btn-primary" data-act="savewho">'+t("start")+'</button>');
+  const pick=$("w_pick");
+  if(pick) pick.addEventListener("change",()=>{ const v=pick.value; if(!v) return; const [n,r]=v.split("|"); $("w_name").value=n; $("w_role").value=r; });
+}
+
+/* --------------------------------------------------------- item editing */
+const UNITS=[["كجم","kg"],["جرام","g"],["لتر","l"],["مل","ml"],["حبة","pcs"],["كوب","cup"],["علبة","box"],["كيس","bag"]];
+function itemForm(kind,x){
+  const isIng=kind==="ing"; x=x||{};
+  const unitSel = UNITS.map(u=>'<option value="'+esc(u[0]+"|"+u[1])+'" '+((x.unit_ar===u[0])?"selected":"")+'>'+esc(state.lang==="ar"?u[0]:u[1])+'</option>').join("");
+  return '<div class="grid2">'
+    + '<div class="field"><label class="f">'+esc(t("name_ar"))+'</label><input type="text" id="f_ar" value="'+esc(x.name_ar||"")+'"></div>'
+    + '<div class="field"><label class="f">'+esc(t("name_en"))+'</label><input type="text" id="f_en" value="'+esc(x.name_en||"")+'"></div></div>'
+  + '<div class="grid2">'
+    + '<div class="field"><label class="f">'+esc(t("unit"))+'</label><select id="f_unit">'+unitSel+'<option value="__custom" '+(x.unit_ar&&!UNITS.some(u=>u[0]===x.unit_ar)?"selected":"")+'>…</option></select></div>'
+    + '<div class="field"><label class="f">'+esc(t("cat"))+'</label><input type="text" id="f_cat" value="'+esc(x.cat_ar||"")+'" placeholder="'+(state.lang==="ar"?"مواد جافة، ألبان…":"Dry goods, dairy…")+'"></div></div>'
+  + '<div class="grid2">'
+    + '<div class="field"><label class="f">'+esc(t("min"))+'</label><input type="number" step="0.001" id="f_min" value="'+esc(x.min!=null?x.min:0)+'"></div>'
+    + '<div class="field"><label class="f">'+esc(isIng?t("cost"):t("price"))+'</label><input type="number" step="0.01" id="f_val" value="'+esc((isIng?x.cost:x.price)||0)+'"></div></div>'
+  + (x.id?'':'<div class="field"><label class="f">'+esc(t("opening"))+'</label><input type="number" step="0.001" id="f_open" value="0"></div>')
+  + '<div class="field"><label class="f">'+esc(t("barcode"))+'</label><div style="display:flex;gap:8px;flex-wrap:wrap">'
+    + '<input type="text" id="f_bc" class="mono" style="flex:1;min-width:140px" value="'+esc(x.barcode||"")+'">'
+    + '<button type="button" class="btn btn-sm" data-act="genbc">'+esc(t("gen"))+'</button>'
+    + '<button type="button" class="btn btn-sm" data-act="camfield">'+esc(t("scan"))+'</button></div></div>'
+  + '<div class="field photo-box"><label class="f">'+esc(t("photo"))+'</label>'
+    + '<input type="file" accept="image/*" capture="environment" id="f_photo" hidden>'
+    + '<div id="photoPrev">'+(x.photo?'<img src="'+esc(x.photo)+'" alt="">':'')+'</div>'
+    + '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">'
+      + '<button type="button" class="btn btn-sm" data-act="pickphoto">'+esc(x.photo?t("change_photo"):t("add_photo"))+'</button>'
+      + (x.photo?'<button type="button" class="btn btn-sm btn-danger" data-act="rmphoto">'+esc(t("del_photo"))+'</button>':'')
+    + '</div></div>'
+  + (isIng?'':recipeEditor(x.recipe||[]));
+}
+function recipeEditor(rec){
+  return '<div style="border-top:1px solid var(--line);margin-top:14px;padding-top:14px">'
+    + '<label class="f">'+esc(t("recipe"))+'</label>'
+    + '<p style="margin:0 0 10px;color:var(--ink-2);font-size:.8rem">'+esc(t("recipe_hint"))+'</p>'
+    + '<div id="recBox">'+rec.map(r=>recipeRow(r)).join("")+'</div>'
+    + '<button type="button" class="btn btn-sm" data-act="addline">+ '+esc(t("add_line"))+'</button></div>';
+}
+function recipeRow(r){
+  r=r||{id:"",qty:""};
+  return '<div class="recipe-row"><select class="r_id">'
+    + '<option value="">—</option>'
+    + state.ingredients.map(i=>'<option value="'+i.id+'" '+(i.id===r.id?"selected":"")+'>'+esc(nm(i))+' ('+esc(un(i))+')</option>').join("")
+    + '</select><input type="number" step="0.001" class="r_qty" value="'+esc(r.qty)+'" placeholder="0.00">'
+    + '<button type="button" class="btn btn-sm btn-danger" data-act="rmline">✕</button></div>';
+}
+let photoBuf=null;
+function openItemForm(kind,item){
+  photoBuf = item&&item.photo ? item.photo : null;
+  openModal(item? t("edit") : (kind==="ing"?t("add_ing"):t("add_prod")),
+    '<form id="itemForm" onsubmit="return false">'+itemForm(kind,item)+'</form>',
+    btnCancel()+'<button class="btn btn-primary" data-act="saveitem" data-v="'+kind+'" data-id="'+(item?item.id:"")+'">'+t("save")+'</button>',
+    kind==="prod");
+}
+async function shrinkPhoto(file){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=url; });
+    const max=480, scale=Math.min(1,max/Math.max(img.width,img.height));
+    const c=document.createElement("canvas"); c.width=Math.round(img.width*scale); c.height=Math.round(img.height*scale);
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    return c.toDataURL("image/jpeg",0.55);
+  } finally { URL.revokeObjectURL(url); }
+}
+function readItemForm(kind,id){
+  const isIng=kind==="ing";
+  const uv=$("f_unit").value, parts=uv==="__custom"?["",""]:uv.split("|");
+  const name_ar=$("f_ar").value.trim();
+  const rec=[];
+  document.querySelectorAll("#recBox .recipe-row").forEach(row=>{
+    const rid=row.querySelector(".r_id").value, q=Number(row.querySelector(".r_qty").value);
+    if(rid && q>0) rec.push({id:rid,qty:q});
+  });
+  const bc=$("f_bc").value.replace(/\s/g,"");
+  if(!name_ar || !parts[0]) return {err:t("err_name")};
+  if(bc && barcodeTaken(bc,id)) return {err:t("err_dup")};
+  const doc={
+    name_ar:name_ar, name_en:$("f_en").value.trim()||name_ar,
+    unit_ar:parts[0], unit_en:parts[1]||parts[0],
+    cat_ar:$("f_cat").value.trim(), cat_en:$("f_cat").value.trim(),
+    min:Number($("f_min").value)||0, barcode:bc||"", photo:photoBuf||""
+  };
+  if(isIng) doc.cost=Number($("f_val").value)||0; else { doc.price=Number($("f_val").value)||0; doc.recipe=rec; }
+  const open=$("f_open"); if(open) doc.stock=Number(open.value)||0;
+  return {doc:doc};
+}
+
+/* ------------------------------------------------------ stock movements */
+function moveModal(item,type){
+  const isIng = state.ingredients.some(x=>x.id===item.id);
+  const titles={receive:t("receive"),waste:t("waste"),adjust:t("adjust"),sell:t("sell")};
+  openModal(titles[type]+" — "+nm(item),
+    '<p style="margin-top:0;color:var(--ink-2);font-size:.86rem">'+esc(t("avail"))+": "+num(item.stock)+" "+esc(un(item))+'</p>'
+    + '<div class="field"><label class="f">'+esc(t("qty"))+' ('+esc(un(item))+')</label><input type="number" step="0.001" id="mv_q" autofocus></div>'
+    + (type==="adjust"?'<p style="margin-top:-6px;color:var(--ink-2);font-size:.78rem">'+(state.lang==="ar"?"رقم سالب ينقص الكمية، وموجب يزيدها.":"A negative number lowers stock, a positive one raises it.")+'</p>':'')
+    + '<div class="field"><label class="f">'+esc(t("note"))+'</label><input type="text" id="mv_n"></div>',
+    btnCancel()+'<button class="btn btn-primary" data-act="domove" data-id="'+item.id+'" data-v="'+type+'" data-k="'+(isIng?"ing":"prod")+'">'+t("confirm")+'</button>');
+}
+async function applyMove(item,kind,type,q,note){
+  const delta = type==="receive" ? q : (type==="adjust" ? q : -q);
+  const next = Number(item.stock||0)+delta;
+  if(next<0) throw {code:"stock"};
+  const coll = kind==="ing"?"ingredients":"products";
+  await state.db.doc(coll+"/"+item.id).update({stock:next});
+  await logMoves([{kind:kind,item_id:item.id,item_ar:item.name_ar,item_en:item.name_en,unit:un(item),type:type,qty:Math.abs(q),note:note||""}]);
+}
+
+/* ------------------------------------------------------------ camera */
+let camStream=null, camTimer=null;
+function stopCam(){ if(camTimer){ clearInterval(camTimer); camTimer=null; } if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; } }
+async function openCam(onCode){
+  if(!("BarcodeDetector" in window) || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    openModal(t("scan"),'<div class="warnbar">'+esc(t("no_cam"))+'</div>',btnCancel()); return;
+  }
+  openModal(t("scan"),'<video id="camv" playsinline muted style="width:100%;border-radius:10px;background:#000"></video>'
+    +'<p style="text-align:center;color:var(--ink-2);font-size:.84rem">'+esc(t("scan_hint"))+'</p>', btnCancel());
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+    const v=$("camv"); v.srcObject=camStream; await v.play();
+    const det=new window.BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128"]});
+    camTimer=setInterval(async ()=>{
+      try{ const found=await det.detect(v); if(found&&found.length){ const code=found[0].rawValue; stopCam(); closeModal(); onCode(code); } }catch(e){}
+    },400);
+  }catch(e){
+    openModal(t("scan"),'<div class="warnbar">'+esc(t("no_cam"))+'</div>',btnCancel());
+  }
+}
+
+/* ---------------------------------------------------------- export data */
+function itemSheet(kind){
+  const isIng=kind==="ing", rows=[[t("name"),t("cat"),t("avail"),t("unit"),t("min"),isIng?t("cost"):t("price"),t("barcode")]];
+  (isIng?state.ingredients:state.products).forEach(x=>rows.push([nm(x),ct(x),Number(x.stock||0),un(x),Number(x.min||0),Number((isIng?x.cost:x.price)||0),x.barcode||""]));
+  return {name:isIng?t("nav_ing"):t("nav_prod"),rows:rows};
+}
+function moveSheet(list){
+  const rows=[[t("date"),t("item"),t("type"),t("qty"),t("unit"),t("by"),t("note")]];
+  list.forEach(m=>rows.push([timeOf(m.at),state.lang==="ar"?m.item_ar:m.item_en,t(MLABEL[m.type]||"m_adjust"),Number(m.qty||0),m.unit||"",m.by||"",m.note||""]));
+  return {name:t("rep_moves"),rows:rows};
+}
+
+/* ------------------------------------------------------------- actions */
+document.addEventListener("click",async (ev)=>{
+  const el=ev.target.closest("[data-act]");
+  if(ev.target.hasAttribute && ev.target.hasAttribute("data-scrim")){ closeModal(); return; }
+  if(!el) return;
+  const act=el.dataset.act, id=el.dataset.id, v=el.dataset.v;
+  const item = id ? (state.ingredients.find(x=>x.id===id)||state.products.find(x=>x.id===id)) : null;
+
+  switch(act){
+    case "tab": state.tab=v; state.search=""; state.focus=null; if(v==="rep") loadRepMoves(); render(); break;
+    case "lang": state.lang=v; ls("ks_lang",v); render(); break;
+    case "closemodal": closeModal(); break;
+    case "hidedemo": state.hideDemo=true; ls("ks_demo","1"); render(); break;
+    case "who": whoModal(); break;
+    case "savewho": {
+      const n=$("w_name").value.trim(); if(!n) return;
+      state.me={name:n,role:$("w_role").value};
+      ls("ks_me",JSON.stringify(state.me)); closeModal(); render(); break;
+    }
+    case "newing": openItemForm("ing",null); break;
+    case "newprod": openItemForm("prod",null); break;
+    case "edititem": closeModal(); openItemForm(state.ingredients.some(x=>x.id===id)?"ing":"prod",item); break;
+    case "genbc": $("f_bc").value=genBarcode(); break;
+    case "camfield": openCam(code=>{ openItemFormAgain(code); }); break;
+    case "camsearch": openCam(code=>{ state.search=code; render(); }); break;
+    case "pickphoto": $("f_photo").click(); break;
+    case "rmphoto": photoBuf=null; $("photoPrev").innerHTML=""; break;
+    case "addline": $("recBox").insertAdjacentHTML("beforeend",recipeRow(null)); break;
+    case "rmline": el.closest(".recipe-row").remove(); break;
+    case "saveitem": {
+      const r=readItemForm(v,id||undefined);
+      if(r.err){ toast(r.err); return; }
+      const coll = v==="ing"?"ingredients":"products";
+      await guard(async ()=>{
+        if(id){ await state.db.doc(coll+"/"+id).update(r.doc); }
+        else{
+          const nid=uid(v==="ing"?"ing":"prd");
+          const doc=Object.assign({stock:0,created_at:new Date().toISOString()},r.doc);
+          await state.db.doc(coll+"/"+nid).set(doc);
+          if(Number(doc.stock)>0) await logMoves([{kind:v,item_id:nid,item_ar:doc.name_ar,item_en:doc.name_en,unit:doc.unit_ar,type:"receive",qty:Number(doc.stock),note:t("opening")}]);
+        }
+        closeModal();
+      }, t("saved"));
+      break;
+    }
+    case "sheet": {
+      if(!item) return;
+      const isIng=state.ingredients.some(x=>x.id===id);
+      const bc=item.barcode?barcodeSVG(item.barcode):null;
+      openModal(nm(item),
+        '<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
+        + (item.photo?'<img src="'+esc(item.photo)+'" alt="" style="width:90px;height:90px;object-fit:cover;border-radius:10px;border:1px solid var(--line)">':'')
+        + '<div><div>'+esc(t("avail"))+': '+stockPill(item)+'</div>'
+        + '<div style="color:var(--ink-2);font-size:.85rem">'+esc(t("min"))+': '+num(item.min)+' '+esc(un(item))+' · '+esc(isIng?t("cost"):t("price"))+': '+esc(money(isIng?item.cost:item.price))+'</div>'
+        + (item.barcode?'<div class="mono">'+esc(item.barcode)+'</div>':'')+'</div></div>'
+        + '<div class="acts" style="margin-top:14px">'
+          + (can("manage")?'<button class="btn" data-act="adjust" data-id="'+id+'">'+esc(t("adjust"))+'</button>':'')
+          + (can("manage")?'<button class="btn" data-act="edititem" data-id="'+id+'">'+esc(t("edit"))+'</button>':'')
+          + (item.barcode?'<button class="btn" data-act="labelbc" data-id="'+id+'">'+esc(t("label"))+'</button>':'')
+          + (can("delete")?'<button class="btn btn-danger" data-act="delitem" data-id="'+id+'" data-k="'+(isIng?"ing":"prod")+'">'+esc(t("del"))+'</button>':'')
+        + '</div>', btnCancel());
+      break;
+    }
+    case "labelbc": {
+      const svg=barcodeSVG(item.barcode);
+      const isIng=state.ingredients.some(x=>x.id===id);
+      openModal(t("label"),
+        '<div class="label-card" id="labelCard"><div class="lname">'+esc(nm(item))+'</div>'
+        + (isIng?'':'<div class="lprice">'+esc(money(item.price))+'</div>')
+        + (svg||'<div class="mono" style="font-size:1.1rem">'+esc(item.barcode)+'</div>')+'</div>',
+        btnCancel()+'<button class="btn btn-primary" data-act="print">'+t("print")+'</button>');
+      break;
+    }
+    case "delitem": {
+      if(!confirm(t("del_q"))) return;
+      await guard(async ()=>{ await state.db.doc((el.dataset.k==="ing"?"ingredients":"products")+"/"+id).delete(); closeModal(); }, t("deleted"));
+      break;
+    }
+    case "receive": case "waste": case "adjust": case "sell":
+      if(item) moveModal(item,act); break;
+    case "domove": {
+      const q=Number($("mv_q").value), note=$("mv_n").value.trim();
+      if(!q || (act!=="adjust" && q<=0)){ toast(t("err_qty")); return; }
+      const it = state.ingredients.find(x=>x.id===id)||state.products.find(x=>x.id===id);
+      try{ await applyMove(it,el.dataset.k,v,v==="adjust"?q:Math.abs(q),note); closeModal(); toast(t("done")); }
+      catch(e){ toast(e&&e.code==="stock"?t("err_stock"):dbErr(e)); }
+      break;
+    }
+    case "makefrom": state.tab="make"; state.makePid=id; state.makeQty=""; render(); break;
+    case "produce": {
+      const p=state.products.find(x=>x.id===state.makePid), qty=Number(state.makeQty||0);
+      if(!p||!qty) return;
+      await guard(async ()=>{
+        const entries=[];
+        for(const r of p.recipe){
+          const ing=findIng(r.id); if(!ing) continue;
+          const need=Number(r.qty)*qty;
+          await state.db.doc("ingredients/"+ing.id).update({stock:Number(ing.stock||0)-need});
+          entries.push({kind:"ing",item_id:ing.id,item_ar:ing.name_ar,item_en:ing.name_en,unit:un(ing),type:"make_out",qty:need,note:nm(p)});
+        }
+        await state.db.doc("products/"+p.id).update({stock:Number(p.stock||0)+qty});
+        entries.push({kind:"prod",item_id:p.id,item_ar:p.name_ar,item_en:p.name_en,unit:un(p),type:"make_in",qty:qty,note:""});
+        await logMoves(entries);
+        state.makeQty="";
+      }, t("done"));
+      break;
+    }
+    case "print": try{ window.print(); }catch(e){ toast(t("print_hint")); } break;
+    case "excelitems": await saveFile((v==="ing"?"ingredients":"products")+"-"+dayKey()+".xlsx", buildXlsx([itemSheet(v)])); break;
+    case "excelmoves": await saveFile("movements-"+dayKey()+".xlsx", buildXlsx([moveSheet(state.moves)])); break;
+    case "excelrep": {
+      const mv = state.repMoves||state.moves;
+      await saveFile("inventory-report-"+dayKey()+".xlsx", buildXlsx([itemSheet("ing"),itemSheet("prod"),moveSheet(mv)]));
+      break;
+    }
+    case "savesettings": {
+      const s={shop_ar:$("s_ar").value.trim(),shop_en:$("s_en").value.trim(),currency:$("s_cur").value.trim()};
+      await guard(()=>state.db.doc("meta/settings").set(s), t("saved"));
+      break;
+    }
+    case "addstaff": {
+      openModal(t("add_staff"),
+        '<div class="field"><label class="f">'+esc(t("who_name"))+'</label><input type="text" id="st_n"></div>'
+        + '<div class="field"><label class="f">'+esc(t("who_role"))+'</label><select id="st_r">'
+        + ["admin","chef","staff"].map(r=>'<option value="'+r+'">'+esc(t("role_"+r))+'</option>').join("")+'</select></div>',
+        btnCancel()+'<button class="btn btn-primary" data-act="savestaff">'+t("save")+'</button>');
+      break;
+    }
+    case "savestaff": {
+      const n=$("st_n").value.trim(); if(!n) return;
+      await guard(async ()=>{ await state.db.doc("staff/"+uid("stf")).set({name:n,role:$("st_r").value}); closeModal(); }, t("saved"));
+      break;
+    }
+    case "delstaff": await guard(()=>state.db.doc("staff/"+id).delete(), t("deleted")); break;
+    case "cleanup": {
+      await guard(async ()=>{
+        const cutoff=shiftDays(-90);
+        const snap=await state.db.collection("movements").orderBy("date","asc").limit(120).get();
+        let n=0;
+        for(const d of snap.docs){ if(d.id<cutoff){ await state.db.doc("movements/"+d.id).delete(); n++; } }
+      }, t("cleanup_done"));
+      break;
+    }
+  }
+});
+function openItemFormAgain(code){
+  // re-open the form preserving typed values is unnecessary: the field is still in the DOM behind the camera modal
+  const f=$("f_bc"); if(f) f.value=code; else { state.search=code; render(); }
+}
+document.addEventListener("change",async (ev)=>{
+  const el=ev.target;
+  if(el.id==="f_photo" && el.files && el.files[0]){
+    try{
+      const data=await shrinkPhoto(el.files[0]);
+      if(data.length>160000){ toast(t("photo_big")); return; }
+      photoBuf=data; $("photoPrev").innerHTML='<img src="'+data+'" alt="">';
+    }catch(e){ toast(t("photo_big")); }
+  }
+  const key=el.dataset&&el.dataset.input;
+  if(key==="lowonly"){ state.lowOnly=el.checked; render(); }
+  if(key==="mfilter"){ state.mFilter=el.value; render(); }
+  if(key==="makepid"){ state.makePid=el.value; render(); }
+  if(key==="repfrom"){ state.repFrom=el.value; loadRepMoves(); }
+  if(key==="repto"){ state.repTo=el.value; loadRepMoves(); }
+});
+document.addEventListener("input",(ev)=>{
+  const key=ev.target.dataset&&ev.target.dataset.input;
+  if(key==="search"){ state.search=ev.target.value; state.focus="search"; render(); }
+  if(key==="makeqty"){ state.makeQty=ev.target.value; state.focus="makeqty"; render(); }
+});
+document.addEventListener("keydown",(ev)=>{ if(ev.key==="Escape") closeModal(); });
+
+async function loadRepMoves(){
+  if(!state.db){ state.repMoves=[]; render(); return; }
+  state.repMoves=null; render();
+  try{
+    const snap=await state.db.collection("movements").where("date",">=",state.repFrom).where("date","<=",state.repTo).orderBy("date","desc").limit(120).get();
+    const out=[]; snap.docs.forEach(d=>(d.data().entries||[]).forEach(e=>out.push(e)));
+    state.repMoves=out.sort((a,b)=>String(b.at||"").localeCompare(String(a.at||"")));
+  }catch(e){ state.repMoves=[]; }
+  render();
+}
+
+/* ---------------------------------------------------------------- boot */
+applyDir();
+render();
+initDb().then(()=>{ if(!state.me && !state.dbFailed) setTimeout(whoModal,400); });
+</script>
