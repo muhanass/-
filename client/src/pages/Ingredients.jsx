@@ -3,10 +3,23 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import api from '../lib/api';
 import Modal from '../components/Modal';
+import BarcodeSVG from '../components/BarcodeSVG';
 import { useAuth } from '../context/AuthContext';
 import { formatQty } from '../lib/format';
+import { exportToExcel } from '../lib/excel';
+import { generateBarcode } from '../lib/barcodeGen';
 
-const emptyForm = { name_ar: '', name_en: '', unit: '', category_id: '', supplier_id: '', min_qty: 0, cost_per_unit: 0, stock_qty: 0 };
+const emptyForm = {
+  name_ar: '',
+  name_en: '',
+  unit: '',
+  category_id: '',
+  supplier_id: '',
+  min_qty: 0,
+  cost_per_unit: 0,
+  stock_qty: 0,
+  barcode: '',
+};
 
 export default function Ingredients() {
   const { t } = useTranslation();
@@ -19,6 +32,7 @@ export default function Ingredients() {
   const [suppliers, setSuppliers] = useState([]);
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -28,6 +42,7 @@ export default function Ingredients() {
   const [actionQty, setActionQty] = useState('');
   const [actionNote, setActionNote] = useState('');
   const [error, setError] = useState('');
+  const [barcodeModal, setBarcodeModal] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -60,6 +75,7 @@ export default function Ingredients() {
       min_qty: item.min_qty,
       cost_per_unit: item.cost_per_unit,
       stock_qty: item.stock_qty,
+      barcode: item.barcode || '',
     });
     setError('');
     setFormOpen(true);
@@ -120,18 +136,59 @@ export default function Ingredients() {
     adjust: t('ingredients.adjustTitle'),
   };
 
+  const filteredItems = items.filter((item) => {
+    if (!search.trim()) return true;
+    const q = search.trim().toLowerCase();
+    return (
+      item.name_ar.toLowerCase().includes(q) ||
+      item.name_en.toLowerCase().includes(q) ||
+      (item.barcode || '').toLowerCase().includes(q)
+    );
+  });
+
+  function handleExport() {
+    exportToExcel(`ingredients-${new Date().toISOString().slice(0, 10)}`, [
+      {
+        name: t('ingredients.title'),
+        rows: filteredItems.map((item) => ({
+          [t('common.name')]: isAr ? item.name_ar : item.name_en,
+          [t('common.category')]: item.category_id ? (isAr ? item.category_name_ar : item.category_name_en) : '',
+          [t('common.stock')]: formatQty(item.stock_qty),
+          [t('common.minStock')]: formatQty(item.min_qty),
+          [t('common.cost')]: item.cost_per_unit,
+          [t('common.barcode')]: item.barcode || '',
+        })),
+      },
+    ]);
+  }
+
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header no-print">
         <h1>{t('ingredients.title')}</h1>
-        {canManage && (
-          <button className="btn btn-primary" onClick={openAdd}>
-            + {t('ingredients.addNew')}
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary" onClick={handleExport}>
+            {t('common.exportExcel')}
           </button>
-        )}
+          <button className="btn btn-secondary" onClick={() => window.print()}>
+            {t('common.print')}
+          </button>
+          {canManage && (
+            <button className="btn btn-primary" onClick={openAdd}>
+              + {t('ingredients.addNew')}
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="toolbar">
+      <div className="toolbar no-print">
+        <input
+          type="text"
+          className="search-box"
+          placeholder={t('common.scanOrSearch')}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 0 }}>
           <input
             type="checkbox"
@@ -143,7 +200,7 @@ export default function Ingredients() {
         </label>
       </div>
 
-      <div className="table-wrap">
+      <div className="table-wrap print-area">
         <table>
           <thead>
             <tr>
@@ -152,22 +209,23 @@ export default function Ingredients() {
               <th>{t('common.stock')}</th>
               <th>{t('common.minStock')}</th>
               <th>{t('common.cost')}</th>
-              <th>{t('common.actions')}</th>
+              <th>{t('common.barcode')}</th>
+              <th className="no-print">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6}>{t('common.loading')}</td>
+                <td colSpan={7}>{t('common.loading')}</td>
               </tr>
-            ) : items.length === 0 ? (
+            ) : filteredItems.length === 0 ? (
               <tr>
-                <td colSpan={6} className="empty-state">
+                <td colSpan={7} className="empty-state">
                   {t('common.noData')}
                 </td>
               </tr>
             ) : (
-              items.map((item) => {
+              filteredItems.map((item) => {
                 const low = item.stock_qty <= item.min_qty;
                 return (
                   <tr key={item.id}>
@@ -182,7 +240,8 @@ export default function Ingredients() {
                       {formatQty(item.min_qty)} {item.unit}
                     </td>
                     <td>{item.cost_per_unit}</td>
-                    <td>
+                    <td>{item.barcode || '—'}</td>
+                    <td className="no-print">
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         <button className="btn btn-secondary btn-sm" onClick={() => openAction('purchase', item)}>
                           {t('ingredients.purchase')}
@@ -190,6 +249,11 @@ export default function Ingredients() {
                         <button className="btn btn-secondary btn-sm" onClick={() => openAction('waste', item)}>
                           {t('ingredients.waste')}
                         </button>
+                        {item.barcode && (
+                          <button className="btn btn-secondary btn-sm" onClick={() => setBarcodeModal(item)}>
+                            {t('common.printLabel')}
+                          </button>
+                        )}
                         {canManage && (
                           <>
                             <button className="btn btn-secondary btn-sm" onClick={() => openAction('adjust', item)}>
@@ -295,6 +359,15 @@ export default function Ingredients() {
                 </div>
               )}
             </div>
+            <div className="field">
+              <label>{t('common.barcode')}</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} />
+                <button type="button" className="btn btn-secondary" onClick={() => setForm({ ...form, barcode: generateBarcode() })}>
+                  {t('common.generate')}
+                </button>
+              </div>
+            </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={() => setFormOpen(false)}>
                 {t('common.cancel')}
@@ -335,6 +408,25 @@ export default function Ingredients() {
               </button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {barcodeModal && (
+        <Modal title={t('common.printLabel')} onClose={() => setBarcodeModal(null)}>
+          <div className="print-area">
+            <div className="barcode-label">
+              <div className="label-name">{isAr ? barcodeModal.name_ar : barcodeModal.name_en}</div>
+              <BarcodeSVG value={barcodeModal.barcode} />
+            </div>
+          </div>
+          <div className="modal-footer no-print">
+            <button className="btn btn-secondary" onClick={() => setBarcodeModal(null)}>
+              {t('common.close')}
+            </button>
+            <button className="btn btn-primary" onClick={() => window.print()}>
+              {t('common.print')}
+            </button>
+          </div>
         </Modal>
       )}
     </div>

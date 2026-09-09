@@ -8,6 +8,7 @@
     "movements": "Stock Movements",
     "suppliers": "Suppliers",
     "users": "Users",
+    "reports": "Reports",
     "logout": "Log out"
   },
   "login": {
@@ -55,7 +56,14 @@
     "no": "No",
     "success": "Done successfully",
     "required": "Required",
-    "back": "Back"
+    "back": "Back",
+    "print": "Print",
+    "exportExcel": "Export to Excel",
+    "barcode": "Barcode",
+    "generate": "Generate",
+    "printLabel": "Print Barcode",
+    "scanOrSearch": "Search by name or scan barcode...",
+    "noBarcode": "No barcode set"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -144,6 +152,20 @@
     "editTitle": "Edit Supplier",
     "nameAr": "Name (Arabic)",
     "nameEn": "Name (English)"
+  },
+  "reports": {
+    "title": "Reports",
+    "generatedAt": "Generated at",
+    "inventorySummary": "Inventory Summary",
+    "ingredientsReport": "Ingredients Stock",
+    "productsReport": "Products Stock",
+    "lowStockReport": "Low Stock Alerts",
+    "movementsReport": "Stock Movements",
+    "from": "From",
+    "to": "To",
+    "printFullReport": "Print Full Report",
+    "exportFullReport": "Export Full Report to Excel",
+    "shopName": "Kitchen Inventory Report"
   },
   "users": {
     "title": "Users",

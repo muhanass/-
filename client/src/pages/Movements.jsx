@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import api from '../lib/api';
 import { formatQty } from '../lib/format';
+import { exportToExcel } from '../lib/excel';
 
 const MOVEMENT_TYPES = ['purchase_in', 'production_out', 'production_in', 'sale_out', 'waste', 'adjustment'];
 
@@ -32,13 +33,37 @@ export default function Movements() {
     return 'badge-warning';
   }
 
+  function handleExport() {
+    exportToExcel(`stock-movements-${new Date().toISOString().slice(0, 10)}`, [
+      {
+        name: t('movements.title'),
+        rows: rows.map((row) => ({
+          [t('common.date')]: row.created_at,
+          [t('movements.item')]: isAr ? row.item_name_ar : row.item_name_en,
+          [t('movements.movementType')]: t(`movements.type.${row.movement_type}`),
+          [t('common.quantity')]: formatQty(row.quantity),
+          [t('common.user')]: row.user_name || '',
+          [t('common.notes')]: row.note || '',
+        })),
+      },
+    ]);
+  }
+
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header no-print">
         <h1>{t('movements.title')}</h1>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-secondary" onClick={handleExport}>
+            {t('common.exportExcel')}
+          </button>
+          <button className="btn btn-primary" onClick={() => window.print()}>
+            {t('common.print')}
+          </button>
+        </div>
       </div>
 
-      <div className="toolbar">
+      <div className="toolbar no-print">
         <select value={itemType} onChange={(e) => setItemType(e.target.value)} style={{ width: 180 }}>
           <option value="">{t('common.all')} — {t('movements.itemType')}</option>
           <option value="ingredient">{t('movements.ingredient')}</option>
@@ -54,7 +79,7 @@ export default function Movements() {
         </select>
       </div>
 
-      <div className="table-wrap">
+      <div className="table-wrap print-area">
         <table>
           <thead>
             <tr>

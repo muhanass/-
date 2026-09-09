@@ -41,17 +41,25 @@ router.get('/:id', (req, res) => {
 });
 
 router.post('/', requireRole('admin', 'chef'), (req, res) => {
-  const { name_ar, name_en, unit, category_id, min_qty, selling_price, recipe } = req.body || {};
+  const { name_ar, name_en, unit, category_id, min_qty, selling_price, barcode, recipe } = req.body || {};
   if (!name_ar || !name_en || !unit) {
     return res.status(400).json({ error: 'name_ar, name_en and unit are required' });
   }
   const tx = db.transaction(() => {
     const info = db
       .prepare(
-        `INSERT INTO products (name_ar, name_en, unit, category_id, min_qty, selling_price)
-         VALUES (?, ?, ?, ?, ?, ?)`
+        `INSERT INTO products (name_ar, name_en, unit, category_id, min_qty, selling_price, barcode)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
       )
-      .run(name_ar, name_en, unit, category_id || null, Number(min_qty) || 0, Number(selling_price) || 0);
+      .run(
+        name_ar,
+        name_en,
+        unit,
+        category_id || null,
+        Number(min_qty) || 0,
+        Number(selling_price) || 0,
+        barcode ? String(barcode).trim() : null
+      );
     const productId = info.lastInsertRowid;
     if (Array.isArray(recipe)) {
       const insertRecipe = db.prepare(
@@ -65,18 +73,25 @@ router.post('/', requireRole('admin', 'chef'), (req, res) => {
     }
     return productId;
   });
-  const productId = tx();
-  res.status(201).json(attachRecipe(db.prepare('SELECT * FROM products WHERE id = ?').get(productId)));
+  try {
+    const productId = tx();
+    res.status(201).json(attachRecipe(db.prepare('SELECT * FROM products WHERE id = ?').get(productId)));
+  } catch (e) {
+    if (String(e.message).includes('UNIQUE')) {
+      return res.status(409).json({ error: 'This barcode is already used by another item' });
+    }
+    throw e;
+  }
 });
 
 router.put('/:id', requireRole('admin', 'chef'), (req, res) => {
   const existing = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Not found' });
-  const { name_ar, name_en, unit, category_id, min_qty, selling_price, recipe } = req.body || {};
+  const { name_ar, name_en, unit, category_id, min_qty, selling_price, barcode, recipe } = req.body || {};
 
   const tx = db.transaction(() => {
     db.prepare(
-      `UPDATE products SET name_ar = ?, name_en = ?, unit = ?, category_id = ?, min_qty = ?, selling_price = ?
+      `UPDATE products SET name_ar = ?, name_en = ?, unit = ?, category_id = ?, min_qty = ?, selling_price = ?, barcode = ?
        WHERE id = ?`
     ).run(
       name_ar ?? existing.name_ar,
@@ -85,6 +100,7 @@ router.put('/:id', requireRole('admin', 'chef'), (req, res) => {
       category_id ?? existing.category_id,
       min_qty ?? existing.min_qty,
       selling_price ?? existing.selling_price,
+      barcode === undefined ? existing.barcode : barcode ? String(barcode).trim() : null,
       req.params.id
     );
     if (Array.isArray(recipe)) {
@@ -99,8 +115,15 @@ router.put('/:id', requireRole('admin', 'chef'), (req, res) => {
       }
     }
   });
-  tx();
-  res.json(attachRecipe(db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id)));
+  try {
+    tx();
+    res.json(attachRecipe(db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id)));
+  } catch (e) {
+    if (String(e.message).includes('UNIQUE')) {
+      return res.status(409).json({ error: 'This barcode is already used by another item' });
+    }
+    throw e;
+  }
 });
 
 router.delete('/:id', requireRole('admin'), (req, res) => {

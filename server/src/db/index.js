@@ -14,6 +14,20 @@ db.pragma('foreign_keys = ON');
 const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
 db.exec(schema);
 
+// Migration for databases created before the optional barcode field existed.
+function ensureColumn(table, column, definition) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (!cols.some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+ensureColumn('ingredients', 'barcode', 'TEXT');
+ensureColumn('products', 'barcode', 'TEXT');
+db.exec(`
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_ingredients_barcode ON ingredients(barcode) WHERE barcode IS NOT NULL;
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode) WHERE barcode IS NOT NULL;
+`);
+
 function seed() {
   const userCount = db.prepare('SELECT COUNT(*) AS c FROM users').get().c;
   if (userCount === 0) {

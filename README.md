@@ -19,6 +19,8 @@ A bilingual (Arabic/English) inventory management system for food & beverage sho
 - **تنبيهات النقص**: لوحة تحكم تُظهر أي مادة أو منتج وصل إلى الحد الأدنى.
 - **صلاحيات المستخدمين**: مدير (كل الصلاحيات)، شيف (تصنيع وإدارة المخزون)، موظف (بيع واستلام وتسجيل هدر فقط).
 - **لغتان**: يمكن لأي موظف التبديل بين العربية والإنجليزية بضغطة زر، والواجهة تتغير اتجاهها تلقائياً (RTL/LTR).
+- **التقارير**: صفحة "التقارير" تعرض ملخص المخزون، تنبيهات النقص، وحركة المخزون خلال أي فترة، مع إمكانية **الطباعة** المباشرة من المتصفح، أو **تصدير** التقرير كملف إكسل (بعدة صفحات: مواد خام، منتجات، حركة مخزون). نفس الخيارين (طباعة / تصدير إكسل) متوفران أيضاً في صفحات المواد الخام والمنتجات وحركة المخزون بشكل مستقل.
+- **الباركود (اختياري)**: يمكن إضافة باركود لأي مادة خام أو منتج (حقل اختياري، وليس إجبارياً). يوجد زر "توليد" لإنشاء باركود تلقائياً، وزر "طباعة الباركود" لطباعة ملصق يحتوي اسم الصنف والباركود جاهز للّصق على العبوة. كما يوجد مربع بحث فوق كل جدول يمكن الكتابة فيه أو "مسح" الباركود مباشرة (أغلب قارئات الباركود تعمل مثل لوحة المفاتيح) للعثور على الصنف بسرعة.
 
 ### طريقة التشغيل (خطوة بخطوة)
 
@@ -63,6 +65,8 @@ A bilingual (Arabic/English) inventory management system for food & beverage sho
 - **Low-stock alerts**: a dashboard highlighting anything at or below its minimum threshold.
 - **Role-based access**: Admin (full control), Chef (production + inventory management), Staff (sell/receive/waste only).
 - **Two languages**: any employee can switch between Arabic and English with one click; the layout automatically mirrors (RTL/LTR).
+- **Reports**: a dedicated "Reports" page shows inventory summary, low-stock alerts, and stock movements for any date range — with **Print** (directly from the browser) and **Export to Excel** (a multi-sheet workbook: ingredients, products, movements). The same Print / Export to Excel actions are also available independently on the Ingredients, Products, and Stock Movements pages.
+- **Barcode (optional)**: any ingredient or product can have a barcode — it's an optional field, never required. A "Generate" button creates one automatically, and "Print Barcode" prints a label with the item's name and barcode ready to stick on packaging. Every list also has a search box that accepts typed text or a scanned barcode (most barcode scanners act like a keyboard) to find an item instantly.
 
 ### Running it (step by step)
 

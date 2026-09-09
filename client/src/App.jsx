@@ -9,6 +9,7 @@ import Production from './pages/Production';
 import Movements from './pages/Movements';
 import Suppliers from './pages/Suppliers';
 import Users from './pages/Users';
+import Reports from './pages/Reports';
 
 function ProtectedRoute({ children, roles }) {
   const { user } = useAuth();
@@ -40,6 +41,7 @@ function AppRoutes() {
           }
         />
         <Route path="/movements" element={<Movements />} />
+        <Route path="/reports" element={<Reports />} />
         <Route
           path="/suppliers"
           element={

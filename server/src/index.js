@@ -9,6 +9,7 @@ import productionRoutes from './routes/production.js';
 import movementRoutes from './routes/movements.js';
 import reportRoutes from './routes/reports.js';
 import userRoutes from './routes/users.js';
+import lookupRoutes from './routes/lookup.js';
 
 const app = express();
 app.use(cors());
@@ -25,6 +26,7 @@ app.use('/api/production', productionRoutes);
 app.use('/api/movements', movementRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/lookup', lookupRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

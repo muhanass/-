@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS ingredients (
   stock_qty REAL NOT NULL DEFAULT 0,
   min_qty REAL NOT NULL DEFAULT 0,
   cost_per_unit REAL NOT NULL DEFAULT 0,
+  barcode TEXT,
   active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -50,6 +51,7 @@ CREATE TABLE IF NOT EXISTS products (
   stock_qty REAL NOT NULL DEFAULT 0,
   min_qty REAL NOT NULL DEFAULT 0,
   selling_price REAL NOT NULL DEFAULT 0,
+  barcode TEXT,
   active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

@@ -15,6 +15,7 @@ export default function Layout() {
     { to: '/products', label: t('nav.products'), roles: ['admin', 'chef', 'staff'] },
     { to: '/production', label: t('nav.production'), roles: ['admin', 'chef'] },
     { to: '/movements', label: t('nav.movements'), roles: ['admin', 'chef', 'staff'] },
+    { to: '/reports', label: t('nav.reports'), roles: ['admin', 'chef', 'staff'] },
     { to: '/suppliers', label: t('nav.suppliers'), roles: ['admin', 'chef'] },
     { to: '/users', label: t('nav.users'), roles: ['admin'] },
   ];

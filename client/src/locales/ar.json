@@ -8,6 +8,7 @@
     "movements": "حركة المخزون",
     "suppliers": "الموردين",
     "users": "المستخدمين",
+    "reports": "التقارير",
     "logout": "تسجيل الخروج"
   },
   "login": {
@@ -55,7 +56,14 @@
     "no": "لا",
     "success": "تمت العملية بنجاح",
     "required": "مطلوب",
-    "back": "رجوع"
+    "back": "رجوع",
+    "print": "طباعة",
+    "exportExcel": "تصدير إلى إكسل",
+    "barcode": "الباركود",
+    "generate": "توليد",
+    "printLabel": "طباعة الباركود",
+    "scanOrSearch": "ابحث بالاسم أو امسح الباركود...",
+    "noBarcode": "لا يوجد باركود"
   },
   "dashboard": {
     "title": "لوحة التحكم",
@@ -144,6 +152,20 @@
     "editTitle": "تعديل مورد",
     "nameAr": "الاسم بالعربي",
     "nameEn": "الاسم بالإنجليزي"
+  },
+  "reports": {
+    "title": "التقارير",
+    "generatedAt": "تاريخ الإنشاء",
+    "inventorySummary": "ملخص المخزون",
+    "ingredientsReport": "مخزون المواد الخام",
+    "productsReport": "مخزون المنتجات",
+    "lowStockReport": "تنبيهات نقص المخزون",
+    "movementsReport": "حركة المخزون",
+    "from": "من",
+    "to": "إلى",
+    "printFullReport": "طباعة التقرير الكامل",
+    "exportFullReport": "تصدير التقرير الكامل إلى إكسل",
+    "shopName": "تقرير مخزون المطبخ"
   },
   "users": {
     "title": "المستخدمين",
