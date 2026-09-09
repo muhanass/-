@@ -23,6 +23,8 @@ function ensureColumn(table, column, definition) {
 }
 ensureColumn('ingredients', 'barcode', 'TEXT');
 ensureColumn('products', 'barcode', 'TEXT');
+ensureColumn('ingredients', 'photo', 'TEXT');
+ensureColumn('products', 'photo', 'TEXT');
 db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS idx_ingredients_barcode ON ingredients(barcode) WHERE barcode IS NOT NULL;
   CREATE UNIQUE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode) WHERE barcode IS NOT NULL;

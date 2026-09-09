@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import db from '../db/index.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { saveBase64Image, deletePhoto } from '../lib/uploads.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -29,16 +30,22 @@ router.get('/:id', (req, res) => {
 });
 
 router.post('/', requireRole('admin', 'chef'), (req, res) => {
-  const { name_ar, name_en, unit, category_id, supplier_id, stock_qty, min_qty, cost_per_unit, barcode } =
+  const { name_ar, name_en, unit, category_id, supplier_id, stock_qty, min_qty, cost_per_unit, barcode, photo_data } =
     req.body || {};
   if (!name_ar || !name_en || !unit) {
     return res.status(400).json({ error: 'name_ar, name_en and unit are required' });
   }
+  let photo = null;
+  try {
+    if (photo_data) photo = saveBase64Image(photo_data, 'ingredients');
+  } catch {
+    return res.status(400).json({ error: 'Invalid photo data' });
+  }
   try {
     const info = db
       .prepare(
-        `INSERT INTO ingredients (name_ar, name_en, unit, category_id, supplier_id, stock_qty, min_qty, cost_per_unit, barcode)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO ingredients (name_ar, name_en, unit, category_id, supplier_id, stock_qty, min_qty, cost_per_unit, barcode, photo)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         name_ar,
@@ -49,10 +56,12 @@ router.post('/', requireRole('admin', 'chef'), (req, res) => {
         Number(stock_qty) || 0,
         Number(min_qty) || 0,
         Number(cost_per_unit) || 0,
-        barcode ? String(barcode).trim() : null
+        barcode ? String(barcode).trim() : null,
+        photo
       );
     res.status(201).json(db.prepare('SELECT * FROM ingredients WHERE id = ?').get(info.lastInsertRowid));
   } catch (e) {
+    if (photo) deletePhoto(photo);
     if (String(e.message).includes('UNIQUE')) {
       return res.status(409).json({ error: 'This barcode is already used by another item' });
     }
@@ -63,11 +72,26 @@ router.post('/', requireRole('admin', 'chef'), (req, res) => {
 router.put('/:id', requireRole('admin', 'chef'), (req, res) => {
   const existing = db.prepare('SELECT * FROM ingredients WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Not found' });
-  const { name_ar, name_en, unit, category_id, supplier_id, min_qty, cost_per_unit, barcode } = req.body || {};
+  const { name_ar, name_en, unit, category_id, supplier_id, min_qty, cost_per_unit, barcode, photo_data, remove_photo } =
+    req.body || {};
+
+  let photo = existing.photo;
+  try {
+    if (photo_data) {
+      photo = saveBase64Image(photo_data, 'ingredients');
+      if (existing.photo) deletePhoto(existing.photo);
+    } else if (remove_photo) {
+      if (existing.photo) deletePhoto(existing.photo);
+      photo = null;
+    }
+  } catch {
+    return res.status(400).json({ error: 'Invalid photo data' });
+  }
+
   try {
     db.prepare(
       `UPDATE ingredients SET name_ar = ?, name_en = ?, unit = ?, category_id = ?, supplier_id = ?,
-       min_qty = ?, cost_per_unit = ?, barcode = ? WHERE id = ?`
+       min_qty = ?, cost_per_unit = ?, barcode = ?, photo = ? WHERE id = ?`
     ).run(
       name_ar ?? existing.name_ar,
       name_en ?? existing.name_en,
@@ -77,6 +101,7 @@ router.put('/:id', requireRole('admin', 'chef'), (req, res) => {
       min_qty ?? existing.min_qty,
       cost_per_unit ?? existing.cost_per_unit,
       barcode === undefined ? existing.barcode : barcode ? String(barcode).trim() : null,
+      photo,
       req.params.id
     );
     res.json(db.prepare('SELECT * FROM ingredients WHERE id = ?').get(req.params.id));

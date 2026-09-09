@@ -63,7 +63,19 @@
     "generate": "توليد",
     "printLabel": "طباعة الباركود",
     "scanOrSearch": "ابحث بالاسم أو امسح الباركود...",
-    "noBarcode": "لا يوجد باركود"
+    "noBarcode": "لا يوجد باركود",
+    "scanWithCamera": "مسح بالكاميرا",
+    "cameraError": "تعذر الوصول إلى الكاميرا. تأكد من السماح بالصلاحية وحاول مرة أخرى.",
+    "pointCameraAtBarcode": "وجّه الكاميرا نحو الباركود",
+    "photo": "صورة (اختياري)",
+    "takeOrUploadPhoto": "التقاط أو رفع صورة",
+    "changePhoto": "تغيير الصورة",
+    "removePhoto": "حذف الصورة",
+    "readTextFromPhoto": "قراءة النص من الصورة",
+    "readingText": "جاري القراءة...",
+    "extractedText": "النص المستخرج",
+    "ocrHint": "القراءة التلقائية قد لا تكون دقيقة — راجع وصحّح الحقول أعلاه قبل الحفظ.",
+    "ocrError": "تعذرت قراءة النص من هذه الصورة."
   },
   "dashboard": {
     "title": "لوحة التحكم",
@@ -95,7 +107,9 @@
     "wasteTitle": "تسجيل هدر / تلف",
     "adjustTitle": "تعديل الكمية",
     "adjustHint": "استخدم رقم سالب لتقليل الكمية، وموجب لزيادتها",
-    "deleteConfirm": "هل تريد تعطيل هذه المادة؟"
+    "deleteConfirm": "هل تريد تعطيل هذه المادة؟",
+    "addByScan": "إضافة عن طريق مسح الباركود",
+    "barcodeBelongsToProduct": "هذا الباركود مسجل مسبقاً لمنتج، وليس لمادة خام."
   },
   "products": {
     "title": "المنتجات",
@@ -112,7 +126,9 @@
     "waste": "تسجيل هدر",
     "wasteTitle": "تسجيل هدر",
     "deleteConfirm": "هل تريد تعطيل هذا المنتج؟",
-    "perUnit": "لكل وحدة"
+    "perUnit": "لكل وحدة",
+    "addByScan": "إضافة عن طريق مسح الباركود",
+    "barcodeBelongsToIngredient": "هذا الباركود مسجل مسبقاً لمادة خام، وليس لمنتج."
   },
   "production": {
     "title": "التصنيع",

@@ -21,6 +21,10 @@ A bilingual (Arabic/English) inventory management system for food & beverage sho
 - **لغتان**: يمكن لأي موظف التبديل بين العربية والإنجليزية بضغطة زر، والواجهة تتغير اتجاهها تلقائياً (RTL/LTR).
 - **التقارير**: صفحة "التقارير" تعرض ملخص المخزون، تنبيهات النقص، وحركة المخزون خلال أي فترة، مع إمكانية **الطباعة** المباشرة من المتصفح، أو **تصدير** التقرير كملف إكسل (بعدة صفحات: مواد خام، منتجات، حركة مخزون). نفس الخيارين (طباعة / تصدير إكسل) متوفران أيضاً في صفحات المواد الخام والمنتجات وحركة المخزون بشكل مستقل.
 - **الباركود (اختياري)**: يمكن إضافة باركود لأي مادة خام أو منتج (حقل اختياري، وليس إجبارياً). يوجد زر "توليد" لإنشاء باركود تلقائياً، وزر "طباعة الباركود" لطباعة ملصق يحتوي اسم الصنف والباركود جاهز للّصق على العبوة. كما يوجد مربع بحث فوق كل جدول يمكن الكتابة فيه أو "مسح" الباركود مباشرة (أغلب قارئات الباركود تعمل مثل لوحة المفاتيح) للعثور على الصنف بسرعة.
+- **إضافة مادة خام بثلاث طرق**:
+  1. **الكتابة اليدوية**: تعبئة النموذج كالمعتاد (الاسم، الوحدة، السعر...).
+  2. **مسح الباركود بالكاميرا**: زر "إضافة عن طريق مسح الباركود" يفتح كاميرا الجهاز (جوال أو كمبيوتر) مباشرة من المتصفح — إذا كان الباركود مسجلاً مسبقاً يفتح النظام بطاقة الصنف الموجود، وإذا كان جديداً يفتح نموذج الإضافة مع تعبئة الباركود تلقائياً وبقية الحقول تُكتب يدوياً. نفس الزر متوفر أيضاً بجانب حقل الباركود داخل النموذج نفسه.
+  3. **تصوير المنتج**: زر "التقاط أو رفع صورة" (اختياري) لتصوير المادة الخام أو رفع صورتها — تُحفظ الصورة كمرجع بصري يظهر بجانب اسم الصنف في الجدول، ويوجد أيضاً زر "قراءة النص من الصورة" يحاول قراءة الاسم من الصورة تلقائياً (تقنية OCR تعمل داخل المتصفح) ويعبّئ حقول الاسم تلقائياً — **مع إمكانية المراجعة والتعديل اليدوي دائماً** لأن القراءة التلقائية قد لا تكون دقيقة 100%. هذه الميزة تحتاج اتصال إنترنت في أول استخدام لتحميل ملفات اللغة، وإذا فشلت القراءة يبقى بإمكانك إكمال البيانات يدوياً بدون أي مشكلة.
 
 ### طريقة التشغيل (خطوة بخطوة)
 
@@ -67,6 +71,10 @@ A bilingual (Arabic/English) inventory management system for food & beverage sho
 - **Two languages**: any employee can switch between Arabic and English with one click; the layout automatically mirrors (RTL/LTR).
 - **Reports**: a dedicated "Reports" page shows inventory summary, low-stock alerts, and stock movements for any date range — with **Print** (directly from the browser) and **Export to Excel** (a multi-sheet workbook: ingredients, products, movements). The same Print / Export to Excel actions are also available independently on the Ingredients, Products, and Stock Movements pages.
 - **Barcode (optional)**: any ingredient or product can have a barcode — it's an optional field, never required. A "Generate" button creates one automatically, and "Print Barcode" prints a label with the item's name and barcode ready to stick on packaging. Every list also has a search box that accepts typed text or a scanned barcode (most barcode scanners act like a keyboard) to find an item instantly.
+- **Three ways to add an ingredient**:
+  1. **Type it manually**: fill in the form as usual (name, unit, price...).
+  2. **Scan its barcode with the camera**: the "Add by Scanning Barcode" button opens the device's camera (phone or computer) directly in the browser — if the barcode is already registered, it opens that item's record; if it's new, it opens the Add form with the barcode pre-filled, ready for you to type the rest. The same scan button is also available next to the barcode field inside the form.
+  3. **Photograph it**: an optional "Take or Upload a Photo" button lets you photograph the ingredient (or upload an existing photo) — it's saved as a visual reference shown next to the item's name in the list. A "Read Text from Photo" button also attempts to read the name from the photo automatically (on-device OCR) and pre-fills the name fields — **always reviewable and editable**, since automatic reading isn't always accurate. This feature needs an internet connection the first time it's used (to download language data); if it fails, you can simply keep typing the details manually.
 
 ### Running it (step by step)
 

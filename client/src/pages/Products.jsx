@@ -4,10 +4,22 @@ import i18n from '../i18n';
 import api from '../lib/api';
 import Modal from '../components/Modal';
 import BarcodeSVG from '../components/BarcodeSVG';
+import BarcodeScannerModal from '../components/BarcodeScannerModal';
+import PhotoCapture from '../components/PhotoCapture';
 import { useAuth } from '../context/AuthContext';
 import { formatQty } from '../lib/format';
 import { exportToExcel } from '../lib/excel';
 import { generateBarcode } from '../lib/barcodeGen';
+
+function guessNameFromOcr(text) {
+  const lines = text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const arLine = lines.find((l) => /[؀-ۿ]/.test(l));
+  const enLine = lines.find((l) => /[A-Za-z]{2,}/.test(l));
+  return { ar: arLine || '', en: enLine || '' };
+}
 
 const emptyForm = {
   name_ar: '',
@@ -41,6 +53,9 @@ export default function Products() {
   const [actionQty, setActionQty] = useState('');
   const [actionNote, setActionNote] = useState('');
   const [barcodeModal, setBarcodeModal] = useState(null);
+  const [quickScanOpen, setQuickScanOpen] = useState(false);
+  const [formScannerOpen, setFormScannerOpen] = useState(false);
+  const [photoState, setPhotoState] = useState({ dataUrl: null, remove: false });
 
   async function load() {
     setLoading(true);
@@ -55,9 +70,10 @@ export default function Products() {
     api.get('/ingredients').then((r) => setIngredients(r.data));
   }, []);
 
-  function openAdd() {
+  function openAdd(prefill) {
     setEditing(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, ...prefill });
+    setPhotoState({ dataUrl: null, remove: false });
     setError('');
     setFormOpen(true);
   }
@@ -74,6 +90,7 @@ export default function Products() {
       barcode: item.barcode || '',
       recipe: item.recipe.map((r) => ({ ingredient_id: r.ingredient_id, quantity: r.quantity })),
     });
+    setPhotoState({ dataUrl: null, remove: false });
     setError('');
     setFormOpen(true);
   }
@@ -100,6 +117,8 @@ export default function Products() {
         ...form,
         category_id: form.category_id || null,
         recipe: form.recipe.filter((r) => r.ingredient_id && r.quantity),
+        photo_data: photoState.dataUrl || undefined,
+        remove_photo: photoState.remove || undefined,
       };
       if (editing) {
         await api.put(`/products/${editing.id}`, payload);
@@ -110,6 +129,32 @@ export default function Products() {
       load();
     } catch (err) {
       setError(err.response?.data?.error || 'Error');
+    }
+  }
+
+  function handleOcrText(text) {
+    const guess = guessNameFromOcr(text);
+    setForm((f) => ({
+      ...f,
+      name_ar: f.name_ar || guess.ar,
+      name_en: f.name_en || guess.en,
+    }));
+  }
+
+  async function handleQuickScanDetected(code) {
+    setQuickScanOpen(false);
+    try {
+      const res = await api.get(`/lookup/barcode/${encodeURIComponent(code)}`);
+      if (res.data.type === 'product') {
+        const full = await api.get(`/products/${res.data.item.id}`);
+        openEdit(full.data);
+      } else {
+        alert(t('products.barcodeBelongsToIngredient'));
+      }
+    } catch (err) {
+      if (err.response?.status === 404) {
+        openAdd({ barcode: code });
+      }
     }
   }
 
@@ -179,9 +224,14 @@ export default function Products() {
             {t('common.print')}
           </button>
           {canManage && (
-            <button className="btn btn-primary" onClick={openAdd}>
-              + {t('products.addNew')}
-            </button>
+            <>
+              <button className="btn btn-secondary" onClick={() => setQuickScanOpen(true)}>
+                {t('products.addByScan')}
+              </button>
+              <button className="btn btn-primary" onClick={() => openAdd()}>
+                + {t('products.addNew')}
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -225,7 +275,14 @@ export default function Products() {
                 const low = item.stock_qty <= item.min_qty;
                 return (
                   <tr key={item.id}>
-                    <td>{isAr ? item.name_ar : item.name_en}</td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {item.photo && (
+                          <img src={item.photo} alt="" style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover' }} />
+                        )}
+                        {isAr ? item.name_ar : item.name_en}
+                      </div>
+                    </td>
                     <td>{item.category_id ? (isAr ? item.category_name_ar : item.category_name_en) : '—'}</td>
                     <td>
                       <span className={`badge ${low ? 'badge-danger' : 'badge-ok'}`}>
@@ -327,13 +384,22 @@ export default function Products() {
             </div>
             <div className="field">
               <label>{t('common.barcode')}</label>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <input value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} />
                 <button type="button" className="btn btn-secondary" onClick={() => setForm({ ...form, barcode: generateBarcode() })}>
                   {t('common.generate')}
                 </button>
+                <button type="button" className="btn btn-secondary" onClick={() => setFormScannerOpen(true)}>
+                  {t('common.scanWithCamera')}
+                </button>
               </div>
             </div>
+
+            <PhotoCapture
+              photoUrl={editing?.photo}
+              onPhotoChange={(dataUrl, remove) => setPhotoState({ dataUrl, remove })}
+              onOcrText={handleOcrText}
+            />
 
             <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '18px 0' }} />
             <label>{t('products.recipe')}</label>
@@ -435,6 +501,20 @@ export default function Products() {
             </button>
           </div>
         </Modal>
+      )}
+
+      {quickScanOpen && (
+        <BarcodeScannerModal onDetected={handleQuickScanDetected} onClose={() => setQuickScanOpen(false)} />
+      )}
+
+      {formScannerOpen && (
+        <BarcodeScannerModal
+          onDetected={(code) => {
+            setForm((f) => ({ ...f, barcode: code }));
+            setFormScannerOpen(false);
+          }}
+          onClose={() => setFormScannerOpen(false)}
+        />
       )}
     </div>
   );

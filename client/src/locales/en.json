@@ -63,7 +63,19 @@
     "generate": "Generate",
     "printLabel": "Print Barcode",
     "scanOrSearch": "Search by name or scan barcode...",
-    "noBarcode": "No barcode set"
+    "noBarcode": "No barcode set",
+    "scanWithCamera": "Scan with Camera",
+    "cameraError": "Could not access the camera. Check permissions and try again.",
+    "pointCameraAtBarcode": "Point the camera at the barcode",
+    "photo": "Photo (optional)",
+    "takeOrUploadPhoto": "Take or Upload a Photo",
+    "changePhoto": "Change Photo",
+    "removePhoto": "Remove Photo",
+    "readTextFromPhoto": "Read Text from Photo",
+    "readingText": "Reading...",
+    "extractedText": "Extracted Text",
+    "ocrHint": "Automatic reading may not be accurate — review and correct the fields above before saving.",
+    "ocrError": "Could not read text from this photo."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -95,7 +107,9 @@
     "wasteTitle": "Record Waste / Spoilage",
     "adjustTitle": "Adjust Stock",
     "adjustHint": "Use a negative number to decrease stock, positive to increase.",
-    "deleteConfirm": "Deactivate this ingredient?"
+    "deleteConfirm": "Deactivate this ingredient?",
+    "addByScan": "Add by Scanning Barcode",
+    "barcodeBelongsToProduct": "This barcode is already registered to a product, not an ingredient."
   },
   "products": {
     "title": "Products",
@@ -112,7 +126,9 @@
     "waste": "Record Waste",
     "wasteTitle": "Record Waste",
     "deleteConfirm": "Deactivate this product?",
-    "perUnit": "per unit"
+    "perUnit": "per unit",
+    "addByScan": "Add by Scanning Barcode",
+    "barcodeBelongsToIngredient": "This barcode is already registered to an ingredient, not a product."
   },
   "production": {
     "title": "Production",
