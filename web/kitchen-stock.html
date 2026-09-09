@@ -148,6 +148,16 @@ label.f{display:block;font-size:.76rem;font-weight:600;color:var(--ink-2);margin
 .label-card svg{max-width:100%;height:auto}
 .photo-box img{max-width:100%;max-height:200px;border-radius:9px;border:1px solid var(--line);display:block}
 
+/* sign-in gate */
+body.gated .rail,body.gated .top{display:none}
+body.gated .shell{grid-template-columns:1fr}
+body.gated .view{padding:0;max-width:none}
+.gate{min-height:100vh;display:grid;place-items:center;padding:22px}
+.gatecard{width:min(420px,100%);background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px}
+.perm-list{display:grid;gap:7px;margin-top:6px}
+.perm-list label{display:flex;align-items:center;gap:9px;font-size:.86rem;background:var(--surface-2);border-radius:8px;padding:7px 10px;cursor:pointer}
+.perm-list input{width:auto}
+
 #toast{position:fixed;inset-inline:0;bottom:18px;display:flex;justify-content:center;pointer-events:none;z-index:80}
 #toast div{background:var(--ink);color:var(--ground);padding:9px 16px;border-radius:999px;font-size:.85rem;box-shadow:0 6px 24px rgba(0,0,0,.22)}
 
@@ -217,10 +227,28 @@ const STR = {
     all:"الكل", from:"من", to:"إلى", rep_title:"تقرير المخزون", rep_at:"أُنشئ في",
     rep_sum:"ملخص المخزون", rep_low:"تنبيهات النقص", rep_ing:"مخزون المواد الخام",
     rep_prod:"مخزون المنتجات", rep_moves:"حركة المخزون",
-    who_q:"مين يشتغل الحين؟", who_hint:"اسمك يُسجَّل مع كل حركة عشان تعرفون مين سوّى إيش.",
-    who_name:"الاسم", who_role:"الوظيفة", role_admin:"مدير", role_chef:"شيف", role_staff:"موظف",
+    who_name:"الاسم", who_role:"الوظيفة", role_admin:"مدير", role_chef:"شيف", role_staff:"موظف", role_viewer:"مشاهدة فقط",
     start:"ابدأ", change_user:"تغيير المستخدم",
-    staff:"فريق العمل", add_staff:"إضافة موظف", currency:"العملة", shop:"اسم المحل",
+    currency:"العملة", shop:"اسم المحل",
+    /* accounts */
+    login:"تسجيل الدخول", user:"اسم المستخدم", pass:"كلمة المرور", pass2:"تأكيد كلمة المرور",
+    signin:"دخول", signout:"خروج", setup_t:"أنشئ حساب المدير",
+    setup_h:"أول حساب يُنشأ هو حساب المدير، وهو الوحيد الذي يضيف بقية الموظفين ويحدد صلاحياتهم.",
+    login_h:"ادخل باسم المستخدم وكلمة المرور اللي أعطاك إياها المدير.",
+    bad_login:"اسم المستخدم أو كلمة المرور غير صحيحة.",
+    need_user:"اكتب اسم مستخدم وكلمة مرور.", pass_short:"كلمة المرور 6 أحرف على الأقل.",
+    pass_match:"كلمتا المرور غير متطابقتين.", user_taken:"اسم المستخدم مستخدم مسبقاً.",
+    users:"المستخدمون", add_user:"إضافة مستخدم", edit_user:"تعديل المستخدم",
+    perms:"الصلاحيات", reset_pass:"كلمة مرور جديدة", pass_keep:"اتركها فارغة للإبقاء على كلمة المرور الحالية",
+    active:"نشط", inactive:"موقوف", last_admin:"لازم يبقى مدير واحد نشط على الأقل.",
+    del_user_q:"حذف هذا المستخدم؟ يقدر المدير يضيفه من جديد وقت ما يبغى.",
+    no_perm:"ما عندك صلاحية لهذه العملية.",
+    p_receive:"استلام كميات", p_sell:"بيع / استخدام", p_waste:"تسجيل هدر", p_adjust:"تعديل الجرد",
+    p_produce:"التصنيع", p_items:"إضافة وتعديل الأصناف والوصفات", p_del:"حذف الأصناف",
+    p_reports:"التقارير والتصدير", p_admin:"إدارة المستخدمين والإعدادات",
+    role_preset:"قالب جاهز", sec_note:"الحساب ينظّم عمل الفريق داخل الصفحة. الحماية الفعلية من مين تشارك معه الرابط.",
+    no_crypto:"متصفحك ما يدعم التشفير المطلوب لتسجيل الدخول. جرّب متصفح أحدث.",
+    acct_denied:"هذا الجهاز ما عنده صلاحية تعديل المستخدمين. صاحب الصفحة لازم يشارك الرابط معك بصلاحية «يقدر يعدّل».",
     set_sub:"إعدادات المحل وفريق العمل وصيانة السجلات.",
     cleanup:"حذف الحركات الأقدم من 3 أشهر", cleanup_done:"تم حذف السجلات القديمة.",
     saved:"تم الحفظ", deleted:"تم الحذف", done:"تمت العملية",
@@ -268,10 +296,28 @@ const STR = {
     all:"All", from:"From", to:"To", rep_title:"Inventory report", rep_at:"Generated",
     rep_sum:"Inventory summary", rep_low:"Low stock alerts", rep_ing:"Ingredient stock",
     rep_prod:"Product stock", rep_moves:"Stock movements",
-    who_q:"Who's working now?", who_hint:"Your name is recorded with every movement so the team knows who did what.",
-    who_name:"Name", who_role:"Role", role_admin:"Manager", role_chef:"Chef", role_staff:"Staff",
+    who_name:"Name", who_role:"Role", role_admin:"Manager", role_chef:"Chef", role_staff:"Staff", role_viewer:"View only",
     start:"Start", change_user:"Switch user",
-    staff:"Team", add_staff:"Add person", currency:"Currency", shop:"Shop name",
+    currency:"Currency", shop:"Shop name",
+    /* accounts */
+    login:"Sign in", user:"Username", pass:"Password", pass2:"Confirm password",
+    signin:"Sign in", signout:"Sign out", setup_t:"Create the manager account",
+    setup_h:"The first account is the manager's. Only the manager adds the rest of the team and sets what each person can do.",
+    login_h:"Sign in with the username and password your manager gave you.",
+    bad_login:"That username or password isn't right.",
+    need_user:"Enter a username and a password.", pass_short:"Password must be at least 6 characters.",
+    pass_match:"The two passwords don't match.", user_taken:"That username is already taken.",
+    users:"Users", add_user:"Add user", edit_user:"Edit user",
+    perms:"Permissions", reset_pass:"New password", pass_keep:"Leave blank to keep the current password",
+    active:"Active", inactive:"Suspended", last_admin:"At least one active manager must remain.",
+    del_user_q:"Delete this user? The manager can add them again any time.",
+    no_perm:"You don't have permission for that.",
+    p_receive:"Receive stock", p_sell:"Sell / use", p_waste:"Record waste", p_adjust:"Adjust stock",
+    p_produce:"Production", p_items:"Add and edit items and recipes", p_del:"Delete items",
+    p_reports:"Reports and export", p_admin:"Manage users and settings",
+    role_preset:"Preset", sec_note:"Accounts organise your team inside the page. Real protection comes from who you share the link with.",
+    no_crypto:"This browser can't run the encryption sign-in needs. Try a newer browser.",
+    acct_denied:"This device isn't allowed to change users. The page owner needs to share the link with you as “can edit”.",
     set_sub:"Shop details, your team, and record housekeeping.",
     cleanup:"Delete movements older than 3 months", cleanup_done:"Old records deleted.",
     saved:"Saved", deleted:"Deleted", done:"Done",
@@ -396,17 +442,45 @@ async function saveFile(filename,blob){
   catch(e){ if(e && e.code==="declined") return; toast(t("dl_no")); }
 }
 
+/* ------------------------------------------------------------ passwords */
+/* Passwords are never stored as typed: each account keeps a random salt and a
+   PBKDF2-SHA256 derivation of the password, and only those two are written. */
+const PERMS = ["receive","sell","waste","adjust","produce","items","del","reports","admin"];
+const PRESETS = {
+  admin:  {receive:1,sell:1,waste:1,adjust:1,produce:1,items:1,del:1,reports:1,admin:1},
+  chef:   {receive:1,sell:1,waste:1,adjust:1,produce:1,items:1,del:0,reports:1,admin:0},
+  staff:  {receive:1,sell:1,waste:1,adjust:0,produce:0,items:0,del:0,reports:0,admin:0},
+  viewer: {receive:0,sell:0,waste:0,adjust:0,produce:0,items:0,del:0,reports:0,admin:0}
+};
+const hasCrypto = !!(window.crypto && window.crypto.subtle && window.crypto.getRandomValues);
+function b64(bytes){ let s=""; bytes.forEach(b=>s+=String.fromCharCode(b)); return btoa(s); }
+function unb64(s){ return Uint8Array.from(atob(s),c=>c.charCodeAt(0)); }
+function randSalt(){ const a=new Uint8Array(16); crypto.getRandomValues(a); return b64(a); }
+async function derive(pw,saltB64){
+  const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveBits"]);
+  const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:unb64(saltB64),iterations:150000,hash:"SHA-256"},key,256);
+  return b64(new Uint8Array(bits));
+}
+
 /* ---------------------------------------------------------------- state */
 const state = {
   lang: ls("ks_lang")||"ar",
   tab: "dash",
   ready:false, db:null, downloads:null, dbFailed:false,
-  ingredients:[], products:[], staff:[], moves:[], settings:{currency:"ر.س",shop_ar:"",shop_en:""},
-  me: (()=>{ try{ return JSON.parse(ls("ks_me")||"null"); }catch(e){ return null; } })(),
+  ingredients:[], products:[], accounts:[], moves:[], settings:{currency:"ر.س",shop_ar:"",shop_en:""},
+  session: (()=>{ try{ return JSON.parse(ls("ks_session")||"null"); }catch(e){ return null; } })(),
+  authErr:"", busy:false,
   search:"", lowOnly:false, mFilter:"", makePid:"", makeQty:"",
   repFrom: shiftDays(-7), repTo: dayKey(),
   repMoves:null, focus:null, hideDemo: ls("ks_demo")==="1"
 };
+/* the live account record — permissions always come from the database, so a
+   change the manager makes applies on this device without signing out */
+function meAcct(){
+  if(!state.session) return null;
+  return state.accounts.find(a=>a.id===state.session.id && a.active!==false) || null;
+}
+function meName(){ const a=meAcct(); return a?a.username:""; }
 const deviceId = (()=>{ let d=ls("ks_dev"); if(!d){ d="dev_"+Math.random().toString(36).slice(2,10); ls("ks_dev",d); } return d; })();
 
 function applyDir(){
@@ -432,7 +506,7 @@ async function initDb(){
   };
   on("ingredients", v=>state.ingredients=v.sort((a,b)=>String(a.name_ar||"").localeCompare(String(b.name_ar||""),"ar")));
   on("products", v=>state.products=v.sort((a,b)=>String(a.name_ar||"").localeCompare(String(b.name_ar||""),"ar")));
-  on("staff", v=>state.staff=v);
+  on("accounts", v=>state.accounts=v.sort((a,b)=>String(a.username||"").localeCompare(String(b.username||""))));
   on("movements", v=>{
     const out=[];
     v.forEach(d=>(d.entries||[]).forEach(e=>out.push(e)));
@@ -456,7 +530,7 @@ async function logMoves(entries){
   }
   let prev=[];
   try{ const s=await ref.get(); if(s.exists) prev=s.data().entries||[]; }catch(e){}
-  const stamped=entries.map(e=>Object.assign({id:uid("mv"),at:new Date().toISOString(),by:(state.me&&state.me.name)||""},e));
+  const stamped=entries.map(e=>Object.assign({id:uid("mv"),at:new Date().toISOString(),by:meName()},e));
   await ref.set({date:key,entries:prev.concat(stamped)});
 }
 function dbErr(e){
@@ -465,9 +539,14 @@ function dbErr(e){
   if(c==="resource_exhausted") return state.lang==="ar"?"العمليات كثيرة بسرعة — انتظر لحظة وجرّب مرة ثانية.":"Too many operations at once — wait a moment and try again.";
   return state.lang==="ar"?"ما تمت العملية — جرّب مرة ثانية.":"That didn't go through — try again.";
 }
-async function guard(fn,okMsg){
+async function guard(fn,okMsg,ctx){
   try{ await fn(); if(okMsg) toast(okMsg); }
-  catch(e){ toast(dbErr(e)); }
+  catch(e){
+    /* the accounts collection is write-restricted server-side, so a refusal
+       there means this viewer wasn't given edit access to the page */
+    if(ctx==="accounts" && e && e.code==="invalid_argument") toast(t("acct_denied"));
+    else toast(dbErr(e));
+  }
 }
 
 /* ------------------------------------------------------------ selectors */
@@ -483,13 +562,12 @@ function barcodeTaken(code,exceptId){
   if(!code) return false;
   return state.ingredients.concat(state.products).some(x=>x.barcode===code && x.id!==exceptId);
 }
-function can(what){
-  const r=(state.me&&state.me.role)||"staff";
-  if(what==="manage") return r==="admin"||r==="chef";
-  if(what==="produce") return r==="admin"||r==="chef";
-  if(what==="delete") return r==="admin";
-  return true;
+function can(perm){
+  const a=meAcct(); if(!a) return false;
+  if(a.role==="admin") return true;                 // the manager keeps every permission
+  return !!(a.perms && a.perms[perm]);
 }
+function activeAdmins(){ return state.accounts.filter(a=>a.role==="admin" && a.active!==false); }
 
 /* ---------------------------------------------------------------- views */
 function railHtml(){
@@ -500,13 +578,17 @@ function railHtml(){
       + (id==="ing"&&lows?'<span class="n">'+lows+'</span>':'') + '</button>').join("")
     + '<div class="rail-foot">'+esc(state.settings.shop_ar||state.settings.shop_en||"")+'</div>';
 }
-function topHtml(){
-  const me=state.me;
+function langSeg(){
   return '<div class="seg">'
     + '<button data-act="lang" data-v="ar" aria-pressed="'+(state.lang==="ar")+'">العربية</button>'
-    + '<button data-act="lang" data-v="en" aria-pressed="'+(state.lang==="en")+'">English</button></div>'
-    + '<button class="who" data-act="who">'+esc(me?me.name:t("who_q"))
-    + (me?'<span class="role">'+esc(t("role_"+me.role))+'</span>':'')+'</button>';
+    + '<button data-act="lang" data-v="en" aria-pressed="'+(state.lang==="en")+'">English</button></div>';
+}
+function topHtml(){
+  const a=meAcct();
+  return langSeg()
+    + (a?'<div style="display:flex;gap:8px;align-items:center">'
+        + '<span class="who" style="cursor:default">'+esc(a.username)+'<span class="role">'+esc(t("role_"+(a.role||"staff")))+'</span></span>'
+        + '<button class="btn btn-sm" data-act="signout">'+esc(t("signout"))+'</button></div>' : '');
 }
 function stockPill(x){
   const cls = isOut(x)?"pill-crit":(isLow(x)?"pill-warn":"pill-ok");
@@ -570,14 +652,14 @@ function itemsTable(kind){
     + '<th class="no-print">'+esc(t("acts"))+'</th></tr>';
   const body = rows.length ? rows.map(x=>{
     const primary = isIng
-      ? '<button class="btn btn-sm" data-act="receive" data-id="'+x.id+'">'+esc(t("receive"))+'</button>'
-      : '<button class="btn btn-sm" data-act="sell" data-id="'+x.id+'">'+esc(t("sell"))+'</button>';
+      ? (can("receive")?'<button class="btn btn-sm" data-act="receive" data-id="'+x.id+'">'+esc(t("receive"))+'</button>':'')
+      : (can("sell")?'<button class="btn btn-sm" data-act="sell" data-id="'+x.id+'">'+esc(t("sell"))+'</button>':'');
     return '<tr class="'+rowClass(x)+'"><td>'+nameCell(x)+'</td>'
       + '<td>'+stockPill(x)+'</td><td>'+num(x.min)+" "+esc(un(x))+'</td>'
       + '<td>'+money(isIng?x.cost:x.price)+'</td>'
       + (isIng?'':'<td>'+((x.recipe&&x.recipe.length)?'<span class="pill pill-mute">'+x.recipe.length+'</span>':'<span class="pill pill-mute">'+esc(t("no_recipe"))+'</span>')+'</td>')
       + '<td class="rowacts no-print">'+primary
-      + '<button class="btn btn-sm" data-act="waste" data-id="'+x.id+'">'+esc(t("waste"))+'</button>'
+      + (can("waste")?'<button class="btn btn-sm" data-act="waste" data-id="'+x.id+'">'+esc(t("waste"))+'</button>':'')
       + '<button class="btn btn-sm btn-ghost" data-act="sheet" data-id="'+x.id+'" aria-label="'+esc(t("more"))+'">⋯</button></td></tr>';
   }).join("") : '<tr><td colspan="6"><div class="empty">'+esc(t("none"))+'</div></td></tr>';
   return '<div class="scroll"><table><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
@@ -588,8 +670,8 @@ function viewItems(kind){
     + '<p>'+esc(isIng ? (state.lang==="ar"?"كل ما يدخل المطبخ: طحين، حليب، قهوة… مع حد أدنى لكل صنف ينبهك قبل ما ينفد.":"Everything that comes into the kitchen — flour, milk, coffee — each with a minimum that warns you before it runs out.")
       : (state.lang==="ar"?"ما يصنعه الشيف ويُباع للزبون، وكل منتج له وصفة تُخصم من المواد الخام.":"What the chef makes and the shop sells; each product has a recipe that draws from your ingredients."))+'</p></div>'
     + '<div class="acts">'
-      + (can("manage")?'<button class="btn btn-primary" data-act="'+(isIng?"newing":"newprod")+'">+ '+esc(isIng?t("add_ing"):t("add_prod"))+'</button>':'')
-      + '<button class="btn" data-act="excelitems" data-v="'+kind+'">'+esc(t("excel"))+'</button>'
+      + (can("items")?'<button class="btn btn-primary" data-act="'+(isIng?"newing":"newprod")+'">+ '+esc(isIng?t("add_ing"):t("add_prod"))+'</button>':'')
+      + (can("reports")?'<button class="btn" data-act="excelitems" data-v="'+kind+'">'+esc(t("excel"))+'</button>':'')
       + '<button class="btn" data-act="print">'+esc(t("print"))+'</button>'
     + '</div></div>'
   + '<div class="toolbar no-print">'
@@ -627,6 +709,7 @@ function viewMake(){
         + '</tbody></table></div>' : '')
     + (lines.length&&!canGo ? '<div class="critbar">'+esc(t("make_short"))+'</div>' : '')
     + '<div class="acts" style="margin-top:12px"><button class="btn btn-primary" data-act="produce" '+((canGo&&can("produce"))?"":"disabled")+'>'+esc(t("make_go"))+'</button></div>'
+    + (can("produce")?'':'<p style="color:var(--ink-2);font-size:.82rem;margin-bottom:0">'+esc(t("no_perm"))+'</p>')
   + '</div></section>'
   + '<section class="panel"><header><h2>'+esc(t("make_hist"))+'</h2></header>'
     + (hist.length?'<div class="scroll"><table><thead><tr><th>'+esc(t("date"))+'</th><th>'+esc(t("item"))+'</th><th>'+esc(t("qty"))+'</th><th>'+esc(t("by"))+'</th></tr></thead><tbody>'
@@ -650,7 +733,8 @@ function viewMoves(){
   if(state.mFilter) list=list.filter(m=>m.type===state.mFilter);
   return '<div class="phead"><div><h1>'+esc(t("nav_moves"))+'</h1>'
     + '<p>'+esc(state.lang==="ar"?"كل حركة دخول أو خروج مسجّلة باسم من سوّاها — آخر 30 يوم.":"Every in and out, recorded with who did it — the last 30 days.")+'</p></div>'
-    + '<div class="acts"><button class="btn" data-act="excelmoves">'+esc(t("excel"))+'</button><button class="btn" data-act="print">'+esc(t("print"))+'</button></div></div>'
+    + '<div class="acts">'+(can("reports")?'<button class="btn" data-act="excelmoves">'+esc(t("excel"))+'</button>':'')
+    + '<button class="btn" data-act="print">'+esc(t("print"))+'</button></div></div>'
   + '<div class="toolbar no-print"><select data-input="mfilter" style="max-width:260px"><option value="">'+esc(t("all"))+'</option>'
     + MTYPES.map(x=>'<option value="'+x+'" '+(state.mFilter===x?"selected":"")+'>'+esc(t(MLABEL[x]))+'</option>').join("")+'</select></div>'
   + '<section class="panel">'+movesTable(list)+'</section>';
@@ -664,7 +748,8 @@ function viewRep(){
   const tbl=(rows,cols)=>'<div class="scroll"><table><thead><tr>'+cols.map(c=>'<th>'+esc(c)+'</th>').join("")+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
   return '<div class="phead no-print"><div><h1>'+esc(t("nav_rep"))+'</h1>'
     + '<p>'+esc(state.lang==="ar"?"تقرير جاهز للطباعة أو التصدير إلى إكسل، مع اختيار فترة الحركات.":"A report ready to print or export to Excel, over the period you choose.")+'</p></div>'
-    + '<div class="acts"><button class="btn" data-act="excelrep">'+esc(t("excel"))+'</button><button class="btn btn-primary" data-act="print">'+esc(t("print"))+'</button></div></div>'
+    + '<div class="acts">'+(can("reports")?'<button class="btn" data-act="excelrep">'+esc(t("excel"))+'</button>':'')
+    + '<button class="btn btn-primary" data-act="print">'+esc(t("print"))+'</button></div></div>'
   + '<div class="toolbar no-print">'
     + '<div><label class="f">'+esc(t("from"))+'</label><input type="date" data-input="repfrom" value="'+esc(state.repFrom)+'"></div>'
     + '<div><label class="f">'+esc(t("to"))+'</label><input type="date" data-input="repto" value="'+esc(state.repTo)+'"></div>'
@@ -687,28 +772,58 @@ function viewRep(){
   + '</div></section>';
 }
 
+function permSummary(a){
+  if(a.role==="admin") return '<span class="pill pill-ok">'+esc(t("p_admin"))+'</span>';
+  const on=PERMS.filter(p=>a.perms&&a.perms[p]);
+  if(!on.length) return '<span class="pill pill-mute">'+esc(t("role_viewer"))+'</span>';
+  return on.map(p=>'<span class="pill pill-mute">'+esc(t("p_"+p))+'</span>').join(" ");
+}
 function viewSet(){
-  const s=state.settings;
+  const s=state.settings, admin=can("admin"), me=meAcct();
   return '<div class="phead"><div><h1>'+esc(t("nav_set"))+'</h1><p>'+esc(t("set_sub"))+'</p></div></div>'
-  + '<div class="two">'
-  + '<section class="panel"><header><h2>'+esc(t("shop"))+'</h2></header><div class="body">'
-    + '<div class="grid2"><div class="field"><label class="f">'+esc(t("shop"))+' — عربي</label><input type="text" id="s_ar" value="'+esc(s.shop_ar||"")+'"></div>'
-    + '<div class="field"><label class="f">'+esc(t("shop"))+' — English</label><input type="text" id="s_en" value="'+esc(s.shop_en||"")+'"></div></div>'
-    + '<div class="field" style="max-width:200px"><label class="f">'+esc(t("currency"))+'</label><input type="text" id="s_cur" value="'+esc(s.currency||"")+'"></div>'
-    + '<button class="btn btn-primary" data-act="savesettings">'+esc(t("save"))+'</button>'
-  + '</div></section>'
-  + '<section class="panel"><header><h2>'+esc(t("staff"))+'</h2>'
-    + (can("delete")?'<button class="btn btn-sm" data-act="addstaff">+ '+esc(t("add_staff"))+'</button>':'')+'</header>'
-    + (state.staff.length?'<div class="scroll"><table><tbody>'+state.staff.map(p=>'<tr><td>'+esc(p.name)+'</td><td><span class="pill pill-mute">'+esc(t("role_"+(p.role||"staff")))+'</span></td>'
-      +'<td class="rowacts">'+(can("delete")?'<button class="btn btn-sm btn-danger" data-act="delstaff" data-id="'+p.id+'">'+esc(t("del"))+'</button>':'')+'</td></tr>').join("")+'</tbody></table></div>'
-      :'<div class="empty">'+esc(t("none"))+'</div>')
-    + '<div class="body" style="border-top:1px solid var(--line)">'
-      + '<button class="btn" data-act="who">'+esc(t("change_user"))+'</button>'
-      + (can("delete")?' <button class="btn btn-danger" data-act="cleanup">'+esc(t("cleanup"))+'</button>':'')
-    + '</div>'
-  + '</section></div>';
+  + '<section class="panel"><header><h2>'+esc(t("users"))+'</h2>'
+    + (admin?'<button class="btn btn-sm btn-primary" data-act="adduser">+ '+esc(t("add_user"))+'</button>':'')+'</header>'
+    + '<div class="scroll"><table><thead><tr><th>'+esc(t("user"))+'</th><th>'+esc(t("who_role"))+'</th><th>'+esc(t("perms"))+'</th><th class="no-print">'+esc(t("acts"))+'</th></tr></thead><tbody>'
+    + state.accounts.map(a=>'<tr><td><b>'+esc(a.username)+'</b>'+(me&&me.id===a.id?' <span class="pill pill-ok">'+esc(state.lang==="ar"?"أنت":"you")+'</span>':'')
+        + (a.active===false?' <span class="pill pill-crit">'+esc(t("inactive"))+'</span>':'')+'</td>'
+      + '<td><span class="pill pill-mute">'+esc(t("role_"+(a.role||"staff")))+'</span></td>'
+      + '<td style="display:flex;gap:4px;flex-wrap:wrap;max-width:420px">'+permSummary(a)+'</td>'
+      + '<td class="rowacts no-print">'+(admin?'<button class="btn btn-sm" data-act="edituser" data-id="'+a.id+'">'+esc(t("edit"))+'</button>'
+        + '<button class="btn btn-sm btn-danger" data-act="deluser" data-id="'+a.id+'">'+esc(t("del"))+'</button>':'')+'</td></tr>').join("")
+    + '</tbody></table></div>'
+    + '<div class="body" style="border-top:1px solid var(--line);color:var(--ink-2);font-size:.82rem">'+esc(t("sec_note"))+'</div>'
+  + '</section>'
+  + (admin? '<div class="two">'
+    + '<section class="panel"><header><h2>'+esc(t("shop"))+'</h2></header><div class="body">'
+      + '<div class="grid2"><div class="field"><label class="f">'+esc(t("shop"))+' — عربي</label><input type="text" id="s_ar" value="'+esc(s.shop_ar||"")+'"></div>'
+      + '<div class="field"><label class="f">'+esc(t("shop"))+' — English</label><input type="text" id="s_en" value="'+esc(s.shop_en||"")+'"></div></div>'
+      + '<div class="field" style="max-width:200px"><label class="f">'+esc(t("currency"))+'</label><input type="text" id="s_cur" value="'+esc(s.currency||"")+'"></div>'
+      + '<button class="btn btn-primary" data-act="savesettings">'+esc(t("save"))+'</button>'
+    + '</div></section>'
+    + '<section class="panel"><header><h2>'+esc(t("cleanup"))+'</h2></header><div class="body">'
+      + '<p style="margin-top:0;color:var(--ink-2);font-size:.85rem">'+esc(state.lang==="ar"?"سجل الحركات يكبر مع الوقت. احذف القديم منه بين فترة وأخرى عشان تبقى الصفحة سريعة.":"The movement log grows over time. Clearing old records now and then keeps the page quick.")+'</p>'
+      + '<button class="btn btn-danger" data-act="cleanup">'+esc(t("cleanup"))+'</button>'
+    + '</div></section></div>' : '');
 }
 
+/* the sign-in gate: nothing else renders until an active account is signed in */
+function gateHtml(){
+  const first = state.accounts.length===0;
+  return '<div class="gate"><div class="gatecard">'
+    + '<div style="display:flex;justify-content:center;margin-bottom:16px">'+langSeg()+'</div>'
+    + '<div class="brand" style="justify-content:center;padding:0 0 6px"><span class="mark">🍳</span>'+esc(state.settings.shop_ar||state.settings.shop_en||t("app"))+'</div>'
+    + '<h2 style="text-align:center">'+esc(first?t("setup_t"):t("login"))+'</h2>'
+    + '<p style="text-align:center;color:var(--ink-2);font-size:.85rem;margin:6px 0 18px">'+esc(first?t("setup_h"):t("login_h"))+'</p>'
+    + (state.authErr?'<div class="critbar" style="margin-bottom:12px">'+esc(state.authErr)+'</div>':'')
+    + (hasCrypto?'':'<div class="critbar" style="margin-bottom:12px">'+esc(t("no_crypto"))+'</div>')
+    + '<div class="field"><label class="f" for="lg_u">'+esc(t("user"))+'</label><input type="text" id="lg_u" autocomplete="username" autocapitalize="off" spellcheck="false"></div>'
+    + '<div class="field"><label class="f" for="lg_p">'+esc(t("pass"))+'</label><input type="password" id="lg_p" autocomplete="'+(first?"new-password":"current-password")+'"></div>'
+    + (first?'<div class="field"><label class="f" for="lg_p2">'+esc(t("pass2"))+'</label><input type="password" id="lg_p2" autocomplete="new-password"></div>':'')
+    + '<button class="btn btn-primary" style="width:100%;justify-content:center" data-act="'+(first?"setupadmin":"dologin")+'" '+(state.busy||!hasCrypto?"disabled":"")+'>'
+      + esc(state.busy?"…":(first?t("setup_t"):t("signin")))+'</button>'
+    + '<p style="color:var(--ink-2);font-size:.78rem;margin:14px 0 0;text-align:center">'+esc(t("sec_note"))+'</p>'
+  + '</div></div>';
+}
 function viewHtml(){
   if(!state.ready) return '<div class="panel"><div class="empty">'+esc(t("conn"))+'</div></div>';
   if(state.dbFailed) return '<div class="panel"><div class="empty">'+esc(t("nodb"))+'</div></div>';
@@ -724,6 +839,13 @@ function viewHtml(){
 }
 function render(){
   applyDir();
+  const gated = state.ready && !state.dbFailed && !meAcct();
+  document.body.classList.toggle("gated",gated);
+  if(gated){
+    $("rail").innerHTML=""; $("top").innerHTML=""; $("view").innerHTML=gateHtml();
+    const u=$("lg_u"); if(u && !state.busy) u.focus();
+    return;
+  }
   $("rail").innerHTML=railHtml();
   $("top").innerHTML=topHtml();
   $("view").innerHTML=viewHtml();
@@ -739,19 +861,30 @@ function openModal(title,bodyHtml,footHtml,wide){
 function closeModal(){ $("modalRoot").innerHTML=""; stopCam(); }
 const btnCancel = ()=>'<button class="btn" data-act="closemodal">'+t("cancel")+'</button>';
 
-/* --------------------------------------------------------- who / people */
-function whoModal(){
-  const opts = state.staff.map(p=>'<option value="'+esc(p.name)+'|'+esc(p.role||"staff")+'">'+esc(p.name)+' — '+esc(t("role_"+(p.role||"staff")))+'</option>').join("");
-  openModal(t("who_q"),
-    '<p style="color:var(--ink-2);font-size:.86rem;margin-top:0">'+esc(t("who_hint"))+'</p>'
-    + (opts?'<div class="field"><label class="f">'+esc(t("staff"))+'</label><select id="w_pick"><option value="">—</option>'+opts+'</select></div>':'')
-    + '<div class="grid2"><div class="field"><label class="f">'+esc(t("who_name"))+'</label><input type="text" id="w_name" value="'+esc(state.me?state.me.name:"")+'"></div>'
-    + '<div class="field"><label class="f">'+esc(t("who_role"))+'</label><select id="w_role">'
-      + ["admin","chef","staff"].map(r=>'<option value="'+r+'" '+((state.me&&state.me.role===r)?"selected":"")+'>'+esc(t("role_"+r))+'</option>').join("")
-    + '</select></div></div>',
-    btnCancel()+'<button class="btn btn-primary" data-act="savewho">'+t("start")+'</button>');
-  const pick=$("w_pick");
-  if(pick) pick.addEventListener("change",()=>{ const v=pick.value; if(!v) return; const [n,r]=v.split("|"); $("w_name").value=n; $("w_role").value=r; });
+/* ------------------------------------------------------- accounts / auth */
+function userModal(acct){
+  const a = acct || {role:"staff",perms:Object.assign({},PRESETS.staff),active:true};
+  openModal(acct? t("edit_user") : t("add_user"),
+    '<div class="grid2">'
+    + '<div class="field"><label class="f">'+esc(t("user"))+'</label><input type="text" id="u_name" autocapitalize="off" spellcheck="false" value="'+esc(a.username||"")+'" '+(acct?"disabled":"")+'></div>'
+    + '<div class="field"><label class="f">'+esc(t("role_preset"))+'</label><select id="u_role">'
+      + ["admin","chef","staff","viewer"].map(r=>'<option value="'+r+'" '+(a.role===r?"selected":"")+'>'+esc(t("role_"+r))+'</option>').join("")
+    + '</select></div></div>'
+    + '<div class="field"><label class="f">'+esc(acct?t("reset_pass"):t("pass"))+'</label><input type="password" id="u_pass" autocomplete="new-password" placeholder="'+esc(acct?t("pass_keep"):"")+'"></div>'
+    + '<div class="field"><label class="f">'+esc(t("perms"))+'</label><div class="perm-list" id="permList">'
+      + PERMS.filter(p=>p!=="admin").map(p=>'<label><input type="checkbox" class="pm" data-p="'+p+'" '+((a.perms&&a.perms[p])?"checked":"")+'> '+esc(t("p_"+p))+'</label>').join("")
+      + '<label><input type="checkbox" class="pm" data-p="admin" '+((a.role==="admin"||(a.perms&&a.perms.admin))?"checked":"")+'> '+esc(t("p_admin"))+'</label>'
+    + '</div></div>'
+    + '<label class="check"><input type="checkbox" id="u_active" '+(a.active!==false?"checked":"")+'> '+esc(t("active"))+'</label>',
+    btnCancel()+'<button class="btn btn-primary" data-act="saveuser" data-id="'+(acct?acct.id:"")+'">'+t("save")+'</button>');
+  const roleSel=$("u_role");
+  roleSel.addEventListener("change",()=>{
+    const preset=PRESETS[roleSel.value]||PRESETS.staff;
+    document.querySelectorAll("#permList .pm").forEach(cb=>{ cb.checked=!!preset[cb.dataset.p]; });
+  });
+}
+function readPerms(){
+  const out={}; document.querySelectorAll("#permList .pm").forEach(cb=>{ out[cb.dataset.p]=cb.checked?1:0; }); return out;
 }
 
 /* --------------------------------------------------------- item editing */
@@ -904,11 +1037,68 @@ document.addEventListener("click",async (ev)=>{
     case "lang": state.lang=v; ls("ks_lang",v); render(); break;
     case "closemodal": closeModal(); break;
     case "hidedemo": state.hideDemo=true; ls("ks_demo","1"); render(); break;
-    case "who": whoModal(); break;
-    case "savewho": {
-      const n=$("w_name").value.trim(); if(!n) return;
-      state.me={name:n,role:$("w_role").value};
-      ls("ks_me",JSON.stringify(state.me)); closeModal(); render(); break;
+    case "setupadmin": {
+      const u=$("lg_u").value.trim(), p=$("lg_p").value, p2=$("lg_p2").value;
+      if(!u||!p){ state.authErr=t("need_user"); render(); return; }
+      if(p.length<6){ state.authErr=t("pass_short"); render(); return; }
+      if(p!==p2){ state.authErr=t("pass_match"); render(); return; }
+      state.busy=true; state.authErr=""; render();
+      try{
+        const salt=randSalt(), hash=await derive(p,salt), nid=uid("acct");
+        await state.db.doc("accounts/"+nid).set({username:u,salt:salt,hash:hash,role:"admin",
+          perms:Object.assign({},PRESETS.admin),active:true,created_at:new Date().toISOString()});
+        state.session={id:nid}; ls("ks_session",JSON.stringify(state.session));
+      }catch(e){ state.authErr = (e&&e.code==="invalid_argument") ? t("acct_denied") : dbErr(e); }
+      state.busy=false; render(); break;
+    }
+    case "dologin": {
+      const u=$("lg_u").value.trim().toLowerCase(), p=$("lg_p").value;
+      if(!u||!p){ state.authErr=t("need_user"); render(); return; }
+      state.busy=true; state.authErr=""; render();
+      const acct=state.accounts.find(a=>String(a.username||"").toLowerCase()===u && a.active!==false);
+      let ok=false;
+      if(acct){ try{ ok = (await derive(p,acct.salt))===acct.hash; }catch(e){ ok=false; } }
+      if(ok){ state.session={id:acct.id}; ls("ks_session",JSON.stringify(state.session)); state.authErr=""; }
+      else state.authErr=t("bad_login");
+      state.busy=false; render(); break;
+    }
+    case "signout": state.session=null; ls("ks_session","null"); state.tab="dash"; render(); break;
+    case "adduser": if(can("admin")) userModal(null); break;
+    case "edituser": if(can("admin")) userModal(state.accounts.find(a=>a.id===id)); break;
+    case "saveuser": {
+      if(!can("admin")){ toast(t("no_perm")); return; }
+      const existing = id ? state.accounts.find(a=>a.id===id) : null;
+      const uname = existing ? existing.username : $("u_name").value.trim();
+      const pw = $("u_pass").value;
+      const perms = readPerms();
+      const role = $("u_role").value;
+      const active = $("u_active").checked;
+      if(!uname){ toast(t("need_user")); return; }
+      if(!existing && (!pw || pw.length<6)){ toast(t("pass_short")); return; }
+      if(pw && pw.length<6){ toast(t("pass_short")); return; }
+      if(!existing && state.accounts.some(a=>String(a.username||"").toLowerCase()===uname.toLowerCase())){ toast(t("user_taken")); return; }
+      /* never leave the page without a way back in */
+      const willBeAdmin = role==="admin" || !!perms.admin;
+      if(existing && existing.role==="admin" && (!willBeAdmin || !active) && activeAdmins().length<=1){ toast(t("last_admin")); return; }
+      await guard(async ()=>{
+        const doc={username:uname, role:willBeAdmin?"admin":role, perms:perms, active:active};
+        if(pw){ doc.salt=randSalt(); doc.hash=await derive(pw,doc.salt); }
+        if(existing) await state.db.doc("accounts/"+existing.id).update(doc);
+        else{ doc.created_at=new Date().toISOString(); await state.db.doc("accounts/"+uid("acct")).set(doc); }
+        closeModal();
+      }, t("saved"), "accounts");
+      break;
+    }
+    case "deluser": {
+      if(!can("admin")){ toast(t("no_perm")); return; }
+      const a=state.accounts.find(x=>x.id===id); if(!a) return;
+      if(a.role==="admin" && activeAdmins().length<=1){ toast(t("last_admin")); return; }
+      if(!confirm(t("del_user_q"))) return;
+      await guard(async ()=>{
+        await state.db.doc("accounts/"+id).delete();
+        if(state.session && state.session.id===id){ state.session=null; ls("ks_session","null"); }
+      }, t("deleted"), "accounts");
+      break;
     }
     case "newing": openItemForm("ing",null); break;
     case "newprod": openItemForm("prod",null); break;
@@ -921,6 +1111,7 @@ document.addEventListener("click",async (ev)=>{
     case "addline": $("recBox").insertAdjacentHTML("beforeend",recipeRow(null)); break;
     case "rmline": el.closest(".recipe-row").remove(); break;
     case "saveitem": {
+      if(!can("items")){ toast(t("no_perm")); return; }
       const r=readItemForm(v,id||undefined);
       if(r.err){ toast(r.err); return; }
       const coll = v==="ing"?"ingredients":"products";
@@ -947,10 +1138,10 @@ document.addEventListener("click",async (ev)=>{
         + '<div style="color:var(--ink-2);font-size:.85rem">'+esc(t("min"))+': '+num(item.min)+' '+esc(un(item))+' · '+esc(isIng?t("cost"):t("price"))+': '+esc(money(isIng?item.cost:item.price))+'</div>'
         + (item.barcode?'<div class="mono">'+esc(item.barcode)+'</div>':'')+'</div></div>'
         + '<div class="acts" style="margin-top:14px">'
-          + (can("manage")?'<button class="btn" data-act="adjust" data-id="'+id+'">'+esc(t("adjust"))+'</button>':'')
-          + (can("manage")?'<button class="btn" data-act="edititem" data-id="'+id+'">'+esc(t("edit"))+'</button>':'')
+          + (can("adjust")?'<button class="btn" data-act="adjust" data-id="'+id+'">'+esc(t("adjust"))+'</button>':'')
+          + (can("items")?'<button class="btn" data-act="edititem" data-id="'+id+'">'+esc(t("edit"))+'</button>':'')
           + (item.barcode?'<button class="btn" data-act="labelbc" data-id="'+id+'">'+esc(t("label"))+'</button>':'')
-          + (can("delete")?'<button class="btn btn-danger" data-act="delitem" data-id="'+id+'" data-k="'+(isIng?"ing":"prod")+'">'+esc(t("del"))+'</button>':'')
+          + (can("del")?'<button class="btn btn-danger" data-act="delitem" data-id="'+id+'" data-k="'+(isIng?"ing":"prod")+'">'+esc(t("del"))+'</button>':'')
         + '</div>', btnCancel());
       break;
     }
@@ -965,11 +1156,13 @@ document.addEventListener("click",async (ev)=>{
       break;
     }
     case "delitem": {
+      if(!can("del")){ toast(t("no_perm")); return; }
       if(!confirm(t("del_q"))) return;
       await guard(async ()=>{ await state.db.doc((el.dataset.k==="ing"?"ingredients":"products")+"/"+id).delete(); closeModal(); }, t("deleted"));
       break;
     }
     case "receive": case "waste": case "adjust": case "sell":
+      if(!can(act)){ toast(t("no_perm")); return; }
       if(item) moveModal(item,act); break;
     case "domove": {
       const q=Number($("mv_q").value), note=$("mv_n").value.trim();
@@ -981,6 +1174,7 @@ document.addEventListener("click",async (ev)=>{
     }
     case "makefrom": state.tab="make"; state.makePid=id; state.makeQty=""; render(); break;
     case "produce": {
+      if(!can("produce")){ toast(t("no_perm")); return; }
       const p=state.products.find(x=>x.id===state.makePid), qty=Number(state.makeQty||0);
       if(!p||!qty) return;
       await guard(async ()=>{
@@ -1007,25 +1201,13 @@ document.addEventListener("click",async (ev)=>{
       break;
     }
     case "savesettings": {
+      if(!can("admin")){ toast(t("no_perm")); return; }
       const s={shop_ar:$("s_ar").value.trim(),shop_en:$("s_en").value.trim(),currency:$("s_cur").value.trim()};
       await guard(()=>state.db.doc("meta/settings").set(s), t("saved"));
       break;
     }
-    case "addstaff": {
-      openModal(t("add_staff"),
-        '<div class="field"><label class="f">'+esc(t("who_name"))+'</label><input type="text" id="st_n"></div>'
-        + '<div class="field"><label class="f">'+esc(t("who_role"))+'</label><select id="st_r">'
-        + ["admin","chef","staff"].map(r=>'<option value="'+r+'">'+esc(t("role_"+r))+'</option>').join("")+'</select></div>',
-        btnCancel()+'<button class="btn btn-primary" data-act="savestaff">'+t("save")+'</button>');
-      break;
-    }
-    case "savestaff": {
-      const n=$("st_n").value.trim(); if(!n) return;
-      await guard(async ()=>{ await state.db.doc("staff/"+uid("stf")).set({name:n,role:$("st_r").value}); closeModal(); }, t("saved"));
-      break;
-    }
-    case "delstaff": await guard(()=>state.db.doc("staff/"+id).delete(), t("deleted")); break;
     case "cleanup": {
+      if(!can("admin")){ toast(t("no_perm")); return; }
       await guard(async ()=>{
         const cutoff=shiftDays(-90);
         const snap=await state.db.collection("movements").orderBy("date","asc").limit(120).get();
@@ -1061,7 +1243,13 @@ document.addEventListener("input",(ev)=>{
   if(key==="search"){ state.search=ev.target.value; state.focus="search"; render(); }
   if(key==="makeqty"){ state.makeQty=ev.target.value; state.focus="makeqty"; render(); }
 });
-document.addEventListener("keydown",(ev)=>{ if(ev.key==="Escape") closeModal(); });
+document.addEventListener("keydown",(ev)=>{
+  if(ev.key==="Escape"){ closeModal(); return; }
+  if(ev.key==="Enter" && document.body.classList.contains("gated")){
+    const btn=document.querySelector('.gatecard [data-act="dologin"],.gatecard [data-act="setupadmin"]');
+    if(btn && !btn.disabled){ ev.preventDefault(); btn.click(); }
+  }
+});
 
 async function loadRepMoves(){
   if(!state.db){ state.repMoves=[]; render(); return; }
@@ -1077,5 +1265,5 @@ async function loadRepMoves(){
 /* ---------------------------------------------------------------- boot */
 applyDir();
 render();
-initDb().then(()=>{ if(!state.me && !state.dbFailed) setTimeout(whoModal,400); });
+initDb();
 </script>
