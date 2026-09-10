@@ -141,8 +141,11 @@ label.f{display:block;font-size:.76rem;font-weight:600;color:var(--ink-2);margin
 .modal footer{display:flex;justify-content:flex-end;gap:9px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);flex-wrap:wrap}
 .x{border:0;background:none;cursor:pointer;color:var(--ink-2);font-size:1.05rem;padding:4px 8px;border-radius:7px}
 .x:hover{background:var(--surface-2)}
-.recipe-row{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,172px) auto;gap:8px;margin-bottom:8px;align-items:center}
-.recipe-row input{min-width:0}
+.recipe-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,206px) auto;gap:8px;margin-bottom:8px;align-items:center}
+.recipe-row .r_qty{flex:1 1 auto;min-width:0}
+.recipe-row .r_uwrap{flex:0 0 auto}
+.recipe-row select.r_u{width:88px;padding-inline:8px}
+@media (max-width:560px){.recipe-row{grid-template-columns:1fr;gap:6px}}
 .label-card{border:1px dashed var(--line);border-radius:10px;padding:16px;text-align:center;background:var(--surface)}
 .label-card .lname{font-family:var(--display);font-weight:600;margin-bottom:2px}
 .label-card .lprice{color:var(--ink-2);font-size:.85rem;margin-bottom:8px}
@@ -352,19 +355,41 @@ function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 function t(k){ return (STR[state.lang]&&STR[state.lang][k]) || STR.ar[k] || k; }
 function nm(o){ if(!o) return ""; return state.lang==="ar" ? (o.name_ar||o.name_en||"") : (o.name_en||o.name_ar||""); }
 function un(o){ if(!o) return ""; return state.lang==="ar" ? (o.unit_ar||o.unit_en||"") : (o.unit_en||o.unit_ar||""); }
-/* Stock is kept in three units only: pieces, grams, kilograms. Weight is one
-   scale, so a kilo item and a gram item convert freely — you buy in kilos and
-   spend in grams without either side turning into awkward decimals. */
-const G_LABEL = ()=> state.lang==="ar" ? "جرام" : "g";
-const KG_LABEL= ()=> state.lang==="ar" ? "كجم" : "kg";
-function isWeightU(ua,ue){ return ua==="كجم"||ua==="جرام"||ue==="kg"||ue==="g"; }
-function isWeight(o){ return !!o && isWeightU(o.unit_ar,o.unit_en); }
-function gramsPer(o){ return (o && (o.unit_ar==="كجم"||o.unit_en==="kg")) ? 1000 : 1; }
+/* Units are grouped into families that convert inside themselves: weight
+   (grams ↔ kilos) and volume (millilitres ↔ litres). Pieces and cups are
+   counted, so each stands alone. An amount is always stored in the item's own
+   unit; the family is what lets someone type it in whichever unit they are
+   holding. */
+const UNIT_DEFS = [
+  {ar:"حبة",  en:"pcs", fam:"count",  f:1},
+  {ar:"كوب",  en:"cup", fam:"cup",    f:1},
+  {ar:"جرام", en:"g",   fam:"weight", f:1},
+  {ar:"كجم",  en:"kg",  fam:"weight", f:1000},
+  {ar:"مل",   en:"ml",  fam:"volume", f:1},
+  {ar:"لتر",  en:"l",   fam:"volume", f:1000}
+];
+const UNIT_BY = {}; UNIT_DEFS.forEach(u=>{ UNIT_BY[u.ar]=u; UNIT_BY[u.en]=u; });
+function uMeta(ua,ue){ return UNIT_BY[ua]||UNIT_BY[ue]||null; }
+function uMetaOf(o){ return o ? uMeta(o.unit_ar,o.unit_en) : null; }
+function famUnits(fam){ return UNIT_DEFS.filter(u=>u.fam===fam); }   // smallest first
+function uLabel(u){ return state.lang==="ar" ? u.ar : u.en; }
+/* does this item's family offer more than one unit to type in? */
+function unitChoices(o){ const m=uMetaOf(o); return m ? famUnits(m.fam) : []; }
+function hasChoice(o){ return unitChoices(o).length>1; }
+function baseFactor(o){ const m=uMetaOf(o); return m ? m.f : 1; }
+/* the unit a person would naturally reach for at this size */
+function naturalUnit(base,fam){
+  if(!fam.length) return null;
+  const big=fam[fam.length-1];
+  return (fam.length>1 && Math.abs(base)>=big.f) ? big : fam[0];
+}
 /* one amount, written the way a person would say it */
 function fmtAmount(v,ua,ue){
-  if(!isWeightU(ua,ue)) return num(v)+" "+(state.lang==="ar"?(ua||ue||""):(ue||ua||""));
-  const g = Number(v||0) * ((ua==="كجم"||ue==="kg")?1000:1);
-  return Math.abs(g)>=1000 ? num(g/1000)+" "+KG_LABEL() : num(g)+" "+G_LABEL();
+  const m=uMeta(ua,ue);
+  if(!m) return num(v)+" "+(state.lang==="ar"?(ua||ue||""):(ue||ua||""));
+  const fam=famUnits(m.fam), base=Number(v||0)*m.f;
+  const pick=naturalUnit(base,fam) || m;
+  return num(base/pick.f)+" "+uLabel(pick);
 }
 function fmtItem(v,item){ return fmtAmount(v,item&&item.unit_ar,item&&item.unit_en); }
 function fmtMove(m){ return fmtAmount(m.qty, m.unit_ar||m.unit, m.unit_en||m.unit); }
@@ -906,7 +931,7 @@ function readPerms(){
 }
 
 /* --------------------------------------------------------- item editing */
-const UNITS=[["حبة","pcs"],["جرام","g"],["كجم","kg"]];
+const UNITS=UNIT_DEFS.map(u=>[u.ar,u.en]);
 function itemForm(kind,x){
   const isIng=kind==="ing"; x=x||{};
   /* an item saved before the unit list was narrowed keeps its own unit as an
@@ -945,23 +970,34 @@ function recipeEditor(rec){
     + '<div id="recBox">'+rec.map(r=>recipeRow(r)).join("")+'</div>'
     + '<button type="button" class="btn btn-sm" data-act="addline">+ '+esc(t("add_line"))+'</button></div>';
 }
-/* Recipe amounts are written the way a chef writes them: grams for anything
-   weighed, pieces for anything counted. The stored value stays in the
-   ingredient's own unit, so a kilo-tracked flour keeps 0.08 while the row
-   reads 80 جرام. */
-function recipeUnitLabel(ing){
-  if(!ing) return "";
-  return isWeight(ing) ? G_LABEL() : un(ing);
+/* Each recipe line is written in whichever unit suits that ingredient in this
+   recipe — 400 جرام flour, 250 مل milk, 2 حبة eggs. The stored value is always
+   converted back into the ingredient's own unit. */
+function recipeUnitControl(ing,chosenEn){
+  if(!ing) return '<span class="pill pill-mute">—</span>';
+  const m=uMetaOf(ing);
+  if(!m) return '<span class="pill pill-mute">'+esc(un(ing))+'</span>';
+  const fam=famUnits(m.fam);
+  if(fam.length<2) return '<span class="pill pill-mute">'+esc(uLabel(m))+'</span>';
+  return '<select class="r_u" style="max-width:100px">'
+    + fam.map(u=>'<option value="'+u.en+'" '+(u.en===chosenEn?"selected":"")+'>'+esc(uLabel(u))+'</option>').join("")
+    + '</select>';
 }
 function recipeRow(r){
   r=r||{id:"",qty:""};
   const ing = r.id ? findIng(r.id) : null;
-  const shown = (r.qty==="" || r.qty==null) ? "" : Number(r.qty)*(ing?gramsPer(ing):1);
+  const m = uMetaOf(ing);
+  let shown="", chosen = m ? m.en : "";
+  if(ing && r.qty!=="" && r.qty!=null){
+    const base=Number(r.qty)*baseFactor(ing);
+    const pick=naturalUnit(base, m?famUnits(m.fam):[]) || m;
+    if(pick){ chosen=pick.en; shown=base/pick.f; } else shown=r.qty;
+  }
   return '<div class="recipe-row"><select class="r_id">'
     + '<option value="">—</option>'
     + state.ingredients.map(i=>'<option value="'+i.id+'" '+(i.id===r.id?"selected":"")+'>'+esc(nm(i))+'</option>').join("")
     + '</select><div style="display:flex;align-items:center;gap:6px"><input type="number" step="0.001" class="r_qty" value="'+esc(shown)+'" placeholder="0">'
-    + '<span class="pill pill-mute r_u" style="white-space:nowrap">'+esc(recipeUnitLabel(ing))+'</span></div>'
+    + '<span class="r_uwrap" style="white-space:nowrap">'+recipeUnitControl(ing,chosen)+'</span></div>'
     + '<button type="button" class="btn btn-sm btn-danger" data-act="rmline">✕</button></div>';
 }
 let photoBuf=null;
@@ -996,8 +1032,9 @@ function readItemForm(kind,id){
   document.querySelectorAll("#recBox .recipe-row").forEach(row=>{
     const rid=row.querySelector(".r_id").value, q=Number(row.querySelector(".r_qty").value);
     if(rid && q>0){
-      const ing=findIng(rid);
-      rec.push({id:rid, qty: q/(ing?gramsPer(ing):1)});   // grams typed → the ingredient's own unit
+      const ing=findIng(rid), sel=row.querySelector("select.r_u");
+      const typedUnit = sel && UNIT_BY[sel.value] ? UNIT_BY[sel.value].f : baseFactor(ing);
+      rec.push({id:rid, qty: q*typedUnit/baseFactor(ing)});   // as typed → the ingredient's own unit
     }
   });
   const bc=$("f_bc").value.replace(/\s/g,"");
@@ -1018,13 +1055,13 @@ function readItemForm(kind,id){
 function moveModal(item,type){
   const isIng = state.ingredients.some(x=>x.id===item.id);
   const titles={receive:t("receive"),waste:t("waste"),adjust:t("adjust"),sell:t("sell")};
-  /* a weight item can be entered in either grams or kilos — whichever the
-     person is holding — and is converted into the item's own unit on save */
-  const w=isWeight(item);
-  const picker = w
+  /* enter the amount in whichever unit of the item's family you're holding —
+     25 كجم in, 300 جرام wasted — and it converts into the item's own unit */
+  const choices=unitChoices(item), own=uMetaOf(item);
+  const picker = choices.length>1
     ? '<select id="mv_u" style="max-width:120px">'
-      + '<option value="g" '+(gramsPer(item)===1?"selected":"")+'>'+esc(G_LABEL())+'</option>'
-      + '<option value="kg" '+(gramsPer(item)===1000?"selected":"")+'>'+esc(KG_LABEL())+'</option></select>'
+      + choices.map(u=>'<option value="'+u.en+'" '+(own&&own.en===u.en?"selected":"")+'>'+esc(uLabel(u))+'</option>').join("")
+      + '</select>'
     : '<span class="pill pill-mute" style="align-self:center;white-space:nowrap">'+esc(un(item))+'</span>';
   openModal(titles[type]+" — "+nm(item),
     '<p style="margin-top:0;color:var(--ink-2);font-size:.86rem">'+esc(t("avail"))+": "+esc(fmtItem(item.stock,item))+'</p>'
@@ -1221,7 +1258,7 @@ document.addEventListener("click",async (ev)=>{
       const it = state.ingredients.find(x=>x.id===id)||state.products.find(x=>x.id===id);
       const sel=$("mv_u");
       /* what was typed, expressed in the item's own unit */
-      const q = sel ? (typed*(sel.value==="kg"?1000:1))/gramsPer(it) : typed;
+      const q = (sel && UNIT_BY[sel.value]) ? (typed*UNIT_BY[sel.value].f)/baseFactor(it) : typed;
       if(!q || (v!=="adjust" && q<=0)){ toast(t("err_qty")); return; }
       try{ await applyMove(it,el.dataset.k,v,v==="adjust"?q:Math.abs(q),note); closeModal(); toast(t("done")); }
       catch(e){ toast(e&&e.code==="stock"?t("err_stock"):dbErr(e)); }
@@ -1287,8 +1324,8 @@ document.addEventListener("change",async (ev)=>{
     }catch(e){ toast(t("photo_big")); }
   }
   if(el.classList && el.classList.contains("r_id")){
-    const row=el.closest(".recipe-row"), tag=row&&row.querySelector(".r_u");
-    if(tag) tag.textContent=recipeUnitLabel(findIng(el.value));
+    const row=el.closest(".recipe-row"), wrap=row&&row.querySelector(".r_uwrap"), ing=findIng(el.value);
+    if(wrap){ const m=uMetaOf(ing); wrap.innerHTML=recipeUnitControl(ing, m?m.en:""); }
   }
   const key=el.dataset&&el.dataset.input;
   if(key==="lowonly"){ state.lowOnly=el.checked; render(); }
