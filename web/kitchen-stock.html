@@ -250,7 +250,7 @@ const STR = {
     p_receive:"استلام كميات", p_sell:"بيع / استخدام", p_waste:"تسجيل هدر", p_adjust:"تعديل الجرد",
     p_produce:"التصنيع", p_items:"إضافة وتعديل الأصناف والوصفات", p_del:"حذف الأصناف",
     p_reports:"التقارير والتصدير", p_admin:"إدارة المستخدمين والإعدادات",
-    role_preset:"قالب جاهز", sec_note:"الحساب ينظّم عمل الفريق داخل الصفحة. الحماية الفعلية من مين تشارك معه الرابط.",
+    role_preset:"صلاحيات جاهزة", sec_note:"الحساب ينظّم عمل الفريق داخل الصفحة. الحماية الفعلية من مين تشارك معه الرابط.",
     no_crypto:"متصفحك ما يدعم التشفير المطلوب لتسجيل الدخول. جرّب متصفح أحدث.",
     acct_denied:"هذا الجهاز ما عنده صلاحية تعديل المستخدمين. صاحب الصفحة لازم يشارك الرابط معك بصلاحية «يقدر يعدّل».",
     set_sub:"إعدادات المحل وفريق العمل وصيانة السجلات.",
@@ -361,8 +361,9 @@ function un(o){ if(!o) return ""; return state.lang==="ar" ? (o.unit_ar||o.unit_
    unit; the family is what lets someone type it in whichever unit they are
    holding. */
 const UNIT_DEFS = [
-  {ar:"حبة",  en:"pcs", fam:"count",  f:1},
-  {ar:"كوب",  en:"cup", fam:"cup",    f:1},
+  {ar:"حبة",  en:"pcs",   fam:"count", f:1},
+  {ar:"كوب",  en:"cup",   fam:"cup",   f:1},
+  {ar:"قالب", en:"mould", fam:"mould", f:1},
   {ar:"جرام", en:"g",   fam:"weight", f:1},
   {ar:"كجم",  en:"kg",  fam:"weight", f:1000},
   {ar:"مل",   en:"ml",  fam:"volume", f:1},
@@ -944,7 +945,7 @@ function itemForm(kind,x){
     + '<div class="field"><label class="f">'+esc(t("name_ar"))+'</label><input type="text" id="f_ar" value="'+esc(x.name_ar||"")+'"></div>'
     + '<div class="field"><label class="f">'+esc(t("name_en"))+'</label><input type="text" id="f_en" value="'+esc(x.name_en||"")+'"></div></div>'
   + '<div class="grid2">'
-    + '<div class="field"><label class="f">'+esc(t("unit"))+'</label><select id="f_unit">'+unitSel+'<option value="__custom" '+(x.unit_ar&&!UNITS.some(u=>u[0]===x.unit_ar)?"selected":"")+'>…</option></select></div>'
+    + '<div class="field"><label class="f">'+esc(t("unit"))+'</label><select id="f_unit">'+unitSel+'</select></div>'
     + '<div class="field"><label class="f">'+esc(t("cat"))+'</label><input type="text" id="f_cat" value="'+esc(x.cat_ar||"")+'" placeholder="'+(state.lang==="ar"?"مواد جافة، ألبان…":"Dry goods, dairy…")+'"></div></div>'
   + '<div class="grid2">'
     + '<div class="field"><label class="f">'+esc(t("min"))+' (<span class="u-tag">'+esc(state.lang==="ar"?cur:(x.unit_en||cur))+'</span>)</label><input type="number" step="0.001" id="f_min" value="'+esc(x.min!=null?x.min:0)+'"></div>'
