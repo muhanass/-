@@ -141,7 +141,8 @@ label.f{display:block;font-size:.76rem;font-weight:600;color:var(--ink-2);margin
 .modal footer{display:flex;justify-content:flex-end;gap:9px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);flex-wrap:wrap}
 .x{border:0;background:none;cursor:pointer;color:var(--ink-2);font-size:1.05rem;padding:4px 8px;border-radius:7px}
 .x:hover{background:var(--surface-2)}
-.recipe-row{display:grid;grid-template-columns:1fr 110px auto;gap:8px;margin-bottom:8px;align-items:center}
+.recipe-row{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,172px) auto;gap:8px;margin-bottom:8px;align-items:center}
+.recipe-row input{min-width:0}
 .label-card{border:1px dashed var(--line);border-radius:10px;padding:16px;text-align:center;background:var(--surface)}
 .label-card .lname{font-family:var(--display);font-weight:600;margin-bottom:2px}
 .label-card .lprice{color:var(--ink-2);font-size:.85rem;margin-bottom:8px}
@@ -351,6 +352,23 @@ function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 function t(k){ return (STR[state.lang]&&STR[state.lang][k]) || STR.ar[k] || k; }
 function nm(o){ if(!o) return ""; return state.lang==="ar" ? (o.name_ar||o.name_en||"") : (o.name_en||o.name_ar||""); }
 function un(o){ if(!o) return ""; return state.lang==="ar" ? (o.unit_ar||o.unit_en||"") : (o.unit_en||o.unit_ar||""); }
+/* Stock is kept in three units only: pieces, grams, kilograms. Weight is one
+   scale, so a kilo item and a gram item convert freely — you buy in kilos and
+   spend in grams without either side turning into awkward decimals. */
+const G_LABEL = ()=> state.lang==="ar" ? "جرام" : "g";
+const KG_LABEL= ()=> state.lang==="ar" ? "كجم" : "kg";
+function isWeightU(ua,ue){ return ua==="كجم"||ua==="جرام"||ue==="kg"||ue==="g"; }
+function isWeight(o){ return !!o && isWeightU(o.unit_ar,o.unit_en); }
+function gramsPer(o){ return (o && (o.unit_ar==="كجم"||o.unit_en==="kg")) ? 1000 : 1; }
+/* one amount, written the way a person would say it */
+function fmtAmount(v,ua,ue){
+  if(!isWeightU(ua,ue)) return num(v)+" "+(state.lang==="ar"?(ua||ue||""):(ue||ua||""));
+  const g = Number(v||0) * ((ua==="كجم"||ue==="kg")?1000:1);
+  return Math.abs(g)>=1000 ? num(g/1000)+" "+KG_LABEL() : num(g)+" "+G_LABEL();
+}
+function fmtItem(v,item){ return fmtAmount(v,item&&item.unit_ar,item&&item.unit_en); }
+function fmtMove(m){ return fmtAmount(m.qty, m.unit_ar||m.unit, m.unit_en||m.unit); }
+function unitOf(o){ return {unit_ar:o.unit_ar||"", unit_en:o.unit_en||""}; }
 function ct(o){ if(!o) return ""; return state.lang==="ar" ? (o.cat_ar||o.cat_en||"") : (o.cat_en||o.cat_ar||""); }
 function timeOf(iso){ try{ return new Date(iso).toLocaleString(state.lang==="ar"?"ar-u-nu-latn":"en-GB",{dateStyle:"short",timeStyle:"short"}); }catch(e){ return iso; } }
 function toast(msg){ const w=$("toast"); w.innerHTML='<div>'+esc(msg)+'</div>'; clearTimeout(toast._t); toast._t=setTimeout(()=>{w.innerHTML="";},2600); }
@@ -592,7 +610,7 @@ function topHtml(){
 }
 function stockPill(x){
   const cls = isOut(x)?"pill-crit":(isLow(x)?"pill-warn":"pill-ok");
-  return '<span class="pill '+cls+'">'+num(x.stock)+" "+esc(un(x))+'</span>';
+  return '<span class="pill '+cls+'">'+esc(fmtItem(x.stock,x))+'</span>';
 }
 function rowClass(x){ return isOut(x)?"out":(isLow(x)?"low":""); }
 function nameCell(x){
@@ -608,7 +626,7 @@ function viewDash(){
   const weekAgo=shiftDays(-7);
   const made={};
   state.moves.filter(m=>m.type==="make_in" && String(m.at||"").slice(0,10)>=weekAgo)
-    .forEach(m=>{ const k=m.item_id; made[k]=made[k]||{n:0,ar:m.item_ar,en:m.item_en,u:m.unit}; made[k].n+=Number(m.qty||0); });
+    .forEach(m=>{ const k=m.item_id; made[k]=made[k]||{n:0,ar:m.item_ar,en:m.item_en,ua:m.unit_ar||m.unit,ue:m.unit_en||m.unit}; made[k].n+=Number(m.qty||0); });
   const top=Object.values(made).sort((a,b)=>b.n-a.n).slice(0,5);
   return '<div class="phead"><div><h1>'+esc(t("nav_dash"))+'</h1><p>'+esc(t("dash_sub"))+'</p></div></div>'
   + (state.hideDemo?'':'<div class="note"><span>'+esc(t("demo"))+'</span><button class="btn btn-sm" data-act="hidedemo">'+esc(t("demo_ok"))+'</button></div>')
@@ -624,18 +642,18 @@ function viewDash(){
     + '<section class="panel"><header><h2>'+esc(t("low_title"))+'</h2>'
       + (lows.length?'<span class="pill pill-warn">'+lows.length+'</span>':'')+'</header>'
       + (lows.length ? '<div class="scroll"><table><thead><tr><th>'+esc(t("name"))+'</th><th>'+esc(t("avail"))+'</th><th>'+esc(t("min"))+'</th><th></th></tr></thead><tbody>'
-        + lows.map(x=>'<tr class="'+rowClass(x)+'"><td>'+nameCell(x)+'</td><td>'+stockPill(x)+'</td><td>'+num(x.min)+" "+esc(un(x))+'</td>'
+        + lows.map(x=>'<tr class="'+rowClass(x)+'"><td>'+nameCell(x)+'</td><td>'+stockPill(x)+'</td><td>'+esc(fmtItem(x.min,x))+'</td>'
           + '<td class="rowacts">'+(x.recipe?'<button class="btn btn-sm" data-act="makefrom" data-id="'+x.id+'">'+esc(t("nav_make"))+'</button>'
               :'<button class="btn btn-sm" data-act="receive" data-id="'+x.id+'">'+esc(t("receive"))+'</button>')+'</td></tr>').join("")
         + '</tbody></table></div>' : '<div class="empty">'+esc(t("low_none"))+'</div>')
     + '</section>'
     + '<section class="panel"><header><h2>'+esc(t("made_week"))+'</h2></header>'
-      + (top.length?'<div class="scroll"><table><tbody>'+top.map(x=>'<tr><td>'+esc(state.lang==="ar"?x.ar:x.en)+'</td><td style="text-align:end">'+num(x.n)+" "+esc(x.u||"")+'</td></tr>').join("")+'</tbody></table></div>'
+      + (top.length?'<div class="scroll"><table><tbody>'+top.map(x=>'<tr><td>'+esc(state.lang==="ar"?x.ar:x.en)+'</td><td style="text-align:end">'+esc(fmtAmount(x.n,x.ua,x.ue))+'</td></tr>').join("")+'</tbody></table></div>'
         : '<div class="empty">'+esc(t("none"))+'</div>')
     + '<header style="border-top:1px solid var(--line)"><h2>'+esc(t("recent"))+'</h2></header>'
       + (state.moves.length?'<div class="scroll"><table><tbody>'+state.moves.slice(0,6).map(m=>
           '<tr><td>'+esc(state.lang==="ar"?m.item_ar:m.item_en)+'<small style="display:block;color:var(--ink-2);font-size:.74rem">'+esc(t(MLABEL[m.type]||"m_adjust"))+'</small></td>'
-          +'<td style="text-align:end;white-space:nowrap">'+num(m.qty)+" "+esc(m.unit||"")+'</td></tr>').join("")+'</tbody></table></div>'
+          +'<td style="text-align:end;white-space:nowrap">'+esc(fmtMove(m))+'</td></tr>').join("")+'</tbody></table></div>'
         : '<div class="empty">'+esc(t("none"))+'</div>')
     + '</section>'
   + '</div>';
@@ -655,7 +673,7 @@ function itemsTable(kind){
       ? (can("receive")?'<button class="btn btn-sm" data-act="receive" data-id="'+x.id+'">'+esc(t("receive"))+'</button>':'')
       : (can("sell")?'<button class="btn btn-sm" data-act="sell" data-id="'+x.id+'">'+esc(t("sell"))+'</button>':'');
     return '<tr class="'+rowClass(x)+'"><td>'+nameCell(x)+'</td>'
-      + '<td>'+stockPill(x)+'</td><td>'+num(x.min)+" "+esc(un(x))+'</td>'
+      + '<td>'+stockPill(x)+'</td><td>'+esc(fmtItem(x.min,x))+'</td>'
       + '<td>'+money(isIng?x.cost:x.price)+'</td>'
       + (isIng?'':'<td>'+((x.recipe&&x.recipe.length)?'<span class="pill pill-mute">'+x.recipe.length+'</span>':'<span class="pill pill-mute">'+esc(t("no_recipe"))+'</span>')+'</td>')
       + '<td class="rowacts no-print">'+primary
@@ -704,7 +722,7 @@ function viewMake(){
       + '<input id="mq" type="number" min="1" step="1" data-input="makeqty" value="'+esc(state.makeQty)+'"></div>'
     + (p && (!p.recipe||!p.recipe.length) ? '<div class="warnbar">'+esc(t("make_norec"))+'</div>' : '')
     + (lines.length ? '<div class="scroll" style="margin:12px 0"><table><thead><tr><th>'+esc(t("item"))+'</th><th>'+esc(t("need"))+'</th><th>'+esc(t("have"))+'</th><th></th></tr></thead><tbody>'
-        + lines.map(l=>'<tr class="'+(l.ok?"":"out")+'"><td>'+esc(l.ing?nm(l.ing):"—")+'</td><td>'+num(l.need)+" "+esc(l.ing?un(l.ing):"")+'</td><td>'+num(l.have)+" "+esc(l.ing?un(l.ing):"")+'</td>'
+        + lines.map(l=>'<tr class="'+(l.ok?"":"out")+'"><td>'+esc(l.ing?nm(l.ing):"—")+'</td><td>'+esc(fmtItem(l.need,l.ing))+'</td><td>'+esc(fmtItem(l.have,l.ing))+'</td>'
           +'<td><span class="pill '+(l.ok?"pill-ok":"pill-crit")+'">'+esc(l.ok?t("enough"):t("short"))+'</span></td></tr>').join("")
         + '</tbody></table></div>' : '')
     + (lines.length&&!canGo ? '<div class="critbar">'+esc(t("make_short"))+'</div>' : '')
@@ -713,7 +731,7 @@ function viewMake(){
   + '</div></section>'
   + '<section class="panel"><header><h2>'+esc(t("make_hist"))+'</h2></header>'
     + (hist.length?'<div class="scroll"><table><thead><tr><th>'+esc(t("date"))+'</th><th>'+esc(t("item"))+'</th><th>'+esc(t("qty"))+'</th><th>'+esc(t("by"))+'</th></tr></thead><tbody>'
-      + hist.map(m=>'<tr><td style="white-space:nowrap">'+esc(timeOf(m.at))+'</td><td>'+esc(state.lang==="ar"?m.item_ar:m.item_en)+'</td><td>'+num(m.qty)+" "+esc(m.unit||"")+'</td><td>'+esc(m.by||"—")+'</td></tr>').join("")
+      + hist.map(m=>'<tr><td style="white-space:nowrap">'+esc(timeOf(m.at))+'</td><td>'+esc(state.lang==="ar"?m.item_ar:m.item_en)+'</td><td>'+esc(fmtMove(m))+'</td><td>'+esc(m.by||"—")+'</td></tr>').join("")
       + '</tbody></table></div>':'<div class="empty">'+esc(t("none"))+'</div>')
   + '</section></div>';
 }
@@ -725,7 +743,7 @@ function movesTable(list){
       const cls = m.type==="waste"?"pill-crit":(m.type==="make_in"||m.type==="receive"?"pill-ok":"pill-mute");
       return '<tr><td style="white-space:nowrap">'+esc(timeOf(m.at))+'</td><td>'+esc(state.lang==="ar"?m.item_ar:m.item_en)+'</td>'
         + '<td><span class="pill '+cls+'">'+esc(t(MLABEL[m.type]||"m_adjust"))+'</span></td>'
-        + '<td>'+num(m.qty)+" "+esc(m.unit||"")+'</td><td>'+esc(m.by||"—")+'</td><td>'+esc(m.note||"—")+'</td></tr>';
+        + '<td>'+esc(fmtMove(m))+'</td><td>'+esc(m.by||"—")+'</td><td>'+esc(m.note||"—")+'</td></tr>';
     }).join("")+'</tbody></table></div>';
 }
 function viewMoves(){
@@ -761,12 +779,12 @@ function viewRep(){
     + tbl('<tr><td>'+esc(t("t_ing"))+'</td><td>'+ing.length+'</td><td>'+esc(t("val_ing"))+'</td><td>'+esc(money(vIng))+'</td></tr>'
         + '<tr><td>'+esc(t("t_prod"))+'</td><td>'+pr.length+'</td><td>'+esc(t("val_prod"))+'</td><td>'+esc(money(vPr))+'</td></tr>',["","","",""])
     + '<h2 style="margin-top:20px">'+esc(t("rep_low"))+'</h2>'
-    + (lows.length?tbl(lows.map(x=>'<tr><td>'+esc(nm(x))+'</td><td>'+num(x.stock)+" "+esc(un(x))+'</td><td>'+num(x.min)+" "+esc(un(x))+'</td></tr>').join(""),[t("name"),t("avail"),t("min")])
+    + (lows.length?tbl(lows.map(x=>'<tr><td>'+esc(nm(x))+'</td><td>'+esc(fmtItem(x.stock,x))+'</td><td>'+esc(fmtItem(x.min,x))+'</td></tr>').join(""),[t("name"),t("avail"),t("min")])
        :'<p style="color:var(--ink-2)">'+esc(t("low_none"))+'</p>')
     + '<h2 style="margin-top:20px">'+esc(t("rep_ing"))+'</h2>'
-    + tbl(ing.map(x=>'<tr><td>'+esc(nm(x))+'</td><td>'+num(x.stock)+" "+esc(un(x))+'</td><td>'+num(x.min)+'</td><td>'+esc(money(x.cost))+'</td><td class="mono">'+esc(x.barcode||"—")+'</td></tr>').join(""),[t("name"),t("avail"),t("min"),t("cost"),t("barcode")])
+    + tbl(ing.map(x=>'<tr><td>'+esc(nm(x))+'</td><td>'+esc(fmtItem(x.stock,x))+'</td><td>'+esc(fmtItem(x.min,x))+'</td><td>'+esc(money(x.cost))+'</td><td class="mono">'+esc(x.barcode||"—")+'</td></tr>').join(""),[t("name"),t("avail"),t("min"),t("cost"),t("barcode")])
     + '<h2 style="margin-top:20px">'+esc(t("rep_prod"))+'</h2>'
-    + tbl(pr.map(x=>'<tr><td>'+esc(nm(x))+'</td><td>'+num(x.stock)+" "+esc(un(x))+'</td><td>'+num(x.min)+'</td><td>'+esc(money(x.price))+'</td><td class="mono">'+esc(x.barcode||"—")+'</td></tr>').join(""),[t("name"),t("avail"),t("min"),t("price"),t("barcode")])
+    + tbl(pr.map(x=>'<tr><td>'+esc(nm(x))+'</td><td>'+esc(fmtItem(x.stock,x))+'</td><td>'+esc(fmtItem(x.min,x))+'</td><td>'+esc(money(x.price))+'</td><td class="mono">'+esc(x.barcode||"—")+'</td></tr>').join(""),[t("name"),t("avail"),t("min"),t("price"),t("barcode")])
     + '<h2 style="margin-top:20px">'+esc(t("rep_moves"))+' ('+esc(state.repFrom)+' → '+esc(state.repTo)+')</h2>'
     + (mv===null?'<p style="color:var(--ink-2)">'+esc(t("conn"))+'</p>':movesTable(mv))
   + '</div></section>';
@@ -888,10 +906,15 @@ function readPerms(){
 }
 
 /* --------------------------------------------------------- item editing */
-const UNITS=[["كجم","kg"],["جرام","g"],["لتر","l"],["مل","ml"],["حبة","pcs"],["كوب","cup"],["علبة","box"],["كيس","bag"]];
+const UNITS=[["حبة","pcs"],["جرام","g"],["كجم","kg"]];
 function itemForm(kind,x){
   const isIng=kind==="ing"; x=x||{};
-  const unitSel = UNITS.map(u=>'<option value="'+esc(u[0]+"|"+u[1])+'" '+((x.unit_ar===u[0])?"selected":"")+'>'+esc(state.lang==="ar"?u[0]:u[1])+'</option>').join("");
+  /* an item saved before the unit list was narrowed keeps its own unit as an
+     option, so editing it never dead-ends on a value the list no longer offers */
+  const opts = UNITS.slice();
+  if(x.unit_ar && !opts.some(u=>u[0]===x.unit_ar)) opts.unshift([x.unit_ar,x.unit_en||x.unit_ar]);
+  const cur = x.unit_ar || "كجم";
+  const unitSel = opts.map(u=>'<option value="'+esc(u[0]+"|"+u[1])+'" '+((cur===u[0])?"selected":"")+'>'+esc(state.lang==="ar"?u[0]:u[1])+'</option>').join("");
   return '<div class="grid2">'
     + '<div class="field"><label class="f">'+esc(t("name_ar"))+'</label><input type="text" id="f_ar" value="'+esc(x.name_ar||"")+'"></div>'
     + '<div class="field"><label class="f">'+esc(t("name_en"))+'</label><input type="text" id="f_en" value="'+esc(x.name_en||"")+'"></div></div>'
@@ -899,9 +922,9 @@ function itemForm(kind,x){
     + '<div class="field"><label class="f">'+esc(t("unit"))+'</label><select id="f_unit">'+unitSel+'<option value="__custom" '+(x.unit_ar&&!UNITS.some(u=>u[0]===x.unit_ar)?"selected":"")+'>…</option></select></div>'
     + '<div class="field"><label class="f">'+esc(t("cat"))+'</label><input type="text" id="f_cat" value="'+esc(x.cat_ar||"")+'" placeholder="'+(state.lang==="ar"?"مواد جافة، ألبان…":"Dry goods, dairy…")+'"></div></div>'
   + '<div class="grid2">'
-    + '<div class="field"><label class="f">'+esc(t("min"))+'</label><input type="number" step="0.001" id="f_min" value="'+esc(x.min!=null?x.min:0)+'"></div>'
-    + '<div class="field"><label class="f">'+esc(isIng?t("cost"):t("price"))+'</label><input type="number" step="0.01" id="f_val" value="'+esc((isIng?x.cost:x.price)||0)+'"></div></div>'
-  + (x.id?'':'<div class="field"><label class="f">'+esc(t("opening"))+'</label><input type="number" step="0.001" id="f_open" value="0"></div>')
+    + '<div class="field"><label class="f">'+esc(t("min"))+' (<span class="u-tag">'+esc(state.lang==="ar"?cur:(x.unit_en||cur))+'</span>)</label><input type="number" step="0.001" id="f_min" value="'+esc(x.min!=null?x.min:0)+'"></div>'
+    + '<div class="field"><label class="f">'+esc(isIng?t("cost"):t("price"))+' / <span class="u-tag">'+esc(state.lang==="ar"?cur:(x.unit_en||cur))+'</span></label><input type="number" step="0.01" id="f_val" value="'+esc((isIng?x.cost:x.price)||0)+'"></div></div>'
+  + (x.id?'':'<div class="field"><label class="f">'+esc(t("opening"))+' (<span class="u-tag">'+esc(state.lang==="ar"?cur:(x.unit_en||cur))+'</span>)</label><input type="number" step="0.001" id="f_open" value="0"></div>')
   + '<div class="field"><label class="f">'+esc(t("barcode"))+'</label><div style="display:flex;gap:8px;flex-wrap:wrap">'
     + '<input type="text" id="f_bc" class="mono" style="flex:1;min-width:140px" value="'+esc(x.barcode||"")+'">'
     + '<button type="button" class="btn btn-sm" data-act="genbc">'+esc(t("gen"))+'</button>'
@@ -922,12 +945,23 @@ function recipeEditor(rec){
     + '<div id="recBox">'+rec.map(r=>recipeRow(r)).join("")+'</div>'
     + '<button type="button" class="btn btn-sm" data-act="addline">+ '+esc(t("add_line"))+'</button></div>';
 }
+/* Recipe amounts are written the way a chef writes them: grams for anything
+   weighed, pieces for anything counted. The stored value stays in the
+   ingredient's own unit, so a kilo-tracked flour keeps 0.08 while the row
+   reads 80 جرام. */
+function recipeUnitLabel(ing){
+  if(!ing) return "";
+  return isWeight(ing) ? G_LABEL() : un(ing);
+}
 function recipeRow(r){
   r=r||{id:"",qty:""};
+  const ing = r.id ? findIng(r.id) : null;
+  const shown = (r.qty==="" || r.qty==null) ? "" : Number(r.qty)*(ing?gramsPer(ing):1);
   return '<div class="recipe-row"><select class="r_id">'
     + '<option value="">—</option>'
-    + state.ingredients.map(i=>'<option value="'+i.id+'" '+(i.id===r.id?"selected":"")+'>'+esc(nm(i))+' ('+esc(un(i))+')</option>').join("")
-    + '</select><input type="number" step="0.001" class="r_qty" value="'+esc(r.qty)+'" placeholder="0.00">'
+    + state.ingredients.map(i=>'<option value="'+i.id+'" '+(i.id===r.id?"selected":"")+'>'+esc(nm(i))+'</option>').join("")
+    + '</select><div style="display:flex;align-items:center;gap:6px"><input type="number" step="0.001" class="r_qty" value="'+esc(shown)+'" placeholder="0">'
+    + '<span class="pill pill-mute r_u" style="white-space:nowrap">'+esc(recipeUnitLabel(ing))+'</span></div>'
     + '<button type="button" class="btn btn-sm btn-danger" data-act="rmline">✕</button></div>';
 }
 let photoBuf=null;
@@ -937,6 +971,12 @@ function openItemForm(kind,item){
     '<form id="itemForm" onsubmit="return false">'+itemForm(kind,item)+'</form>',
     btnCancel()+'<button class="btn btn-primary" data-act="saveitem" data-v="'+kind+'" data-id="'+(item?item.id:"")+'">'+t("save")+'</button>',
     kind==="prod");
+  const us=$("f_unit");
+  if(us) us.addEventListener("change",()=>{
+    const parts=us.value.split("|");
+    const label = state.lang==="ar" ? parts[0] : (parts[1]||parts[0]);
+    document.querySelectorAll(".u-tag").forEach(n=>{ n.textContent=label; });
+  });
 }
 async function shrinkPhoto(file){
   const url=URL.createObjectURL(file);
@@ -950,12 +990,15 @@ async function shrinkPhoto(file){
 }
 function readItemForm(kind,id){
   const isIng=kind==="ing";
-  const uv=$("f_unit").value, parts=uv==="__custom"?["",""]:uv.split("|");
+  const parts=$("f_unit").value.split("|");
   const name_ar=$("f_ar").value.trim();
   const rec=[];
   document.querySelectorAll("#recBox .recipe-row").forEach(row=>{
     const rid=row.querySelector(".r_id").value, q=Number(row.querySelector(".r_qty").value);
-    if(rid && q>0) rec.push({id:rid,qty:q});
+    if(rid && q>0){
+      const ing=findIng(rid);
+      rec.push({id:rid, qty: q/(ing?gramsPer(ing):1)});   // grams typed → the ingredient's own unit
+    }
   });
   const bc=$("f_bc").value.replace(/\s/g,"");
   if(!name_ar || !parts[0]) return {err:t("err_name")};
@@ -975,9 +1018,18 @@ function readItemForm(kind,id){
 function moveModal(item,type){
   const isIng = state.ingredients.some(x=>x.id===item.id);
   const titles={receive:t("receive"),waste:t("waste"),adjust:t("adjust"),sell:t("sell")};
+  /* a weight item can be entered in either grams or kilos — whichever the
+     person is holding — and is converted into the item's own unit on save */
+  const w=isWeight(item);
+  const picker = w
+    ? '<select id="mv_u" style="max-width:120px">'
+      + '<option value="g" '+(gramsPer(item)===1?"selected":"")+'>'+esc(G_LABEL())+'</option>'
+      + '<option value="kg" '+(gramsPer(item)===1000?"selected":"")+'>'+esc(KG_LABEL())+'</option></select>'
+    : '<span class="pill pill-mute" style="align-self:center;white-space:nowrap">'+esc(un(item))+'</span>';
   openModal(titles[type]+" — "+nm(item),
-    '<p style="margin-top:0;color:var(--ink-2);font-size:.86rem">'+esc(t("avail"))+": "+num(item.stock)+" "+esc(un(item))+'</p>'
-    + '<div class="field"><label class="f">'+esc(t("qty"))+' ('+esc(un(item))+')</label><input type="number" step="0.001" id="mv_q" autofocus></div>'
+    '<p style="margin-top:0;color:var(--ink-2);font-size:.86rem">'+esc(t("avail"))+": "+esc(fmtItem(item.stock,item))+'</p>'
+    + '<div class="field"><label class="f">'+esc(t("qty"))+'</label>'
+      + '<div style="display:flex;gap:8px"><input type="number" step="0.001" id="mv_q" style="flex:1" autofocus>'+picker+'</div></div>'
     + (type==="adjust"?'<p style="margin-top:-6px;color:var(--ink-2);font-size:.78rem">'+(state.lang==="ar"?"رقم سالب ينقص الكمية، وموجب يزيدها.":"A negative number lowers stock, a positive one raises it.")+'</p>':'')
     + '<div class="field"><label class="f">'+esc(t("note"))+'</label><input type="text" id="mv_n"></div>',
     btnCancel()+'<button class="btn btn-primary" data-act="domove" data-id="'+item.id+'" data-v="'+type+'" data-k="'+(isIng?"ing":"prod")+'">'+t("confirm")+'</button>');
@@ -988,7 +1040,7 @@ async function applyMove(item,kind,type,q,note){
   if(next<0) throw {code:"stock"};
   const coll = kind==="ing"?"ingredients":"products";
   await state.db.doc(coll+"/"+item.id).update({stock:next});
-  await logMoves([{kind:kind,item_id:item.id,item_ar:item.name_ar,item_en:item.name_en,unit:un(item),type:type,qty:Math.abs(q),note:note||""}]);
+  await logMoves([Object.assign({kind:kind,item_id:item.id,item_ar:item.name_ar,item_en:item.name_en,type:type,qty:Math.abs(q),note:note||""},unitOf(item))]);
 }
 
 /* ------------------------------------------------------------ camera */
@@ -1020,7 +1072,7 @@ function itemSheet(kind){
 }
 function moveSheet(list){
   const rows=[[t("date"),t("item"),t("type"),t("qty"),t("unit"),t("by"),t("note")]];
-  list.forEach(m=>rows.push([timeOf(m.at),state.lang==="ar"?m.item_ar:m.item_en,t(MLABEL[m.type]||"m_adjust"),Number(m.qty||0),m.unit||"",m.by||"",m.note||""]));
+  list.forEach(m=>rows.push([timeOf(m.at),state.lang==="ar"?m.item_ar:m.item_en,t(MLABEL[m.type]||"m_adjust"),Number(m.qty||0),(state.lang==="ar"?(m.unit_ar||m.unit):(m.unit_en||m.unit))||"",m.by||"",m.note||""]));
   return {name:t("rep_moves"),rows:rows};
 }
 
@@ -1121,7 +1173,7 @@ document.addEventListener("click",async (ev)=>{
           const nid=uid(v==="ing"?"ing":"prd");
           const doc=Object.assign({stock:0,created_at:new Date().toISOString()},r.doc);
           await state.db.doc(coll+"/"+nid).set(doc);
-          if(Number(doc.stock)>0) await logMoves([{kind:v,item_id:nid,item_ar:doc.name_ar,item_en:doc.name_en,unit:doc.unit_ar,type:"receive",qty:Number(doc.stock),note:t("opening")}]);
+          if(Number(doc.stock)>0) await logMoves([{kind:v,item_id:nid,item_ar:doc.name_ar,item_en:doc.name_en,unit_ar:doc.unit_ar,unit_en:doc.unit_en,type:"receive",qty:Number(doc.stock),note:t("opening")}]);
         }
         closeModal();
       }, t("saved"));
@@ -1135,7 +1187,7 @@ document.addEventListener("click",async (ev)=>{
         '<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
         + (item.photo?'<img src="'+esc(item.photo)+'" alt="" style="width:90px;height:90px;object-fit:cover;border-radius:10px;border:1px solid var(--line)">':'')
         + '<div><div>'+esc(t("avail"))+': '+stockPill(item)+'</div>'
-        + '<div style="color:var(--ink-2);font-size:.85rem">'+esc(t("min"))+': '+num(item.min)+' '+esc(un(item))+' · '+esc(isIng?t("cost"):t("price"))+': '+esc(money(isIng?item.cost:item.price))+'</div>'
+        + '<div style="color:var(--ink-2);font-size:.85rem">'+esc(t("min"))+': '+esc(fmtItem(item.min,item))+' · '+esc(isIng?t("cost"):t("price"))+': '+esc(money(isIng?item.cost:item.price))+'</div>'
         + (item.barcode?'<div class="mono">'+esc(item.barcode)+'</div>':'')+'</div></div>'
         + '<div class="acts" style="margin-top:14px">'
           + (can("adjust")?'<button class="btn" data-act="adjust" data-id="'+id+'">'+esc(t("adjust"))+'</button>':'')
@@ -1165,9 +1217,12 @@ document.addEventListener("click",async (ev)=>{
       if(!can(act)){ toast(t("no_perm")); return; }
       if(item) moveModal(item,act); break;
     case "domove": {
-      const q=Number($("mv_q").value), note=$("mv_n").value.trim();
-      if(!q || (act!=="adjust" && q<=0)){ toast(t("err_qty")); return; }
+      const typed=Number($("mv_q").value), note=$("mv_n").value.trim();
       const it = state.ingredients.find(x=>x.id===id)||state.products.find(x=>x.id===id);
+      const sel=$("mv_u");
+      /* what was typed, expressed in the item's own unit */
+      const q = sel ? (typed*(sel.value==="kg"?1000:1))/gramsPer(it) : typed;
+      if(!q || (v!=="adjust" && q<=0)){ toast(t("err_qty")); return; }
       try{ await applyMove(it,el.dataset.k,v,v==="adjust"?q:Math.abs(q),note); closeModal(); toast(t("done")); }
       catch(e){ toast(e&&e.code==="stock"?t("err_stock"):dbErr(e)); }
       break;
@@ -1183,10 +1238,10 @@ document.addEventListener("click",async (ev)=>{
           const ing=findIng(r.id); if(!ing) continue;
           const need=Number(r.qty)*qty;
           await state.db.doc("ingredients/"+ing.id).update({stock:Number(ing.stock||0)-need});
-          entries.push({kind:"ing",item_id:ing.id,item_ar:ing.name_ar,item_en:ing.name_en,unit:un(ing),type:"make_out",qty:need,note:nm(p)});
+          entries.push(Object.assign({kind:"ing",item_id:ing.id,item_ar:ing.name_ar,item_en:ing.name_en,type:"make_out",qty:need,note:nm(p)},unitOf(ing)));
         }
         await state.db.doc("products/"+p.id).update({stock:Number(p.stock||0)+qty});
-        entries.push({kind:"prod",item_id:p.id,item_ar:p.name_ar,item_en:p.name_en,unit:un(p),type:"make_in",qty:qty,note:""});
+        entries.push(Object.assign({kind:"prod",item_id:p.id,item_ar:p.name_ar,item_en:p.name_en,type:"make_in",qty:qty,note:""},unitOf(p)));
         await logMoves(entries);
         state.makeQty="";
       }, t("done"));
@@ -1230,6 +1285,10 @@ document.addEventListener("change",async (ev)=>{
       if(data.length>160000){ toast(t("photo_big")); return; }
       photoBuf=data; $("photoPrev").innerHTML='<img src="'+data+'" alt="">';
     }catch(e){ toast(t("photo_big")); }
+  }
+  if(el.classList && el.classList.contains("r_id")){
+    const row=el.closest(".recipe-row"), tag=row&&row.querySelector(".r_u");
+    if(tag) tag.textContent=recipeUnitLabel(findIng(el.value));
   }
   const key=el.dataset&&el.dataset.input;
   if(key==="lowonly"){ state.lowOnly=el.checked; render(); }
