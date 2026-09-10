@@ -221,6 +221,8 @@ const STR = {
     gen:"توليد", scan:"مسح بالكاميرا", photo:"صورة الصنف (اختياري)", add_photo:"التقاط أو رفع صورة",
     change_photo:"تغيير الصورة", del_photo:"حذف الصورة",
     recipe_hint:"كمية كل مادة خام لتصنيع وحدة واحدة من المنتج.",
+    per_mould:"عدد الحبات في القالب", per_mould_hint:"اتركه فارغاً إذا هذا المنتج ما ينعمل بقوالب.",
+    recipe_mould:"الوصفة تنتج قالب واحد = {n} حبة، والتصنيع يخصم على هذا الأساس.",
     add_line:"إضافة مكوّن", no_recipe:"بدون وصفة",
     make_sub:"يختار الشيف المنتج والكمية، والنظام يخصم المواد الخام ويضيف الكمية المصنّعة.",
     pick_prod:"المنتج", make_qty:"الكمية المراد تصنيعها", need:"المطلوب", have:"المتوفر",
@@ -290,6 +292,8 @@ const STR = {
     gen:"Generate", scan:"Scan with camera", photo:"Item photo (optional)", add_photo:"Take or upload a photo",
     change_photo:"Change photo", del_photo:"Remove photo",
     recipe_hint:"How much of each ingredient makes one unit of this product.",
+    per_mould:"Pieces per tin", per_mould_hint:"Leave blank if this product isn't made in tins.",
+    recipe_mould:"One run of this recipe makes one tin = {n} pieces, and production deducts on that basis.",
     add_line:"Add ingredient", no_recipe:"No recipe",
     make_sub:"The chef picks a product and a quantity; the system deducts ingredients and adds the finished stock.",
     pick_prod:"Product", make_qty:"Quantity to produce", need:"Needed", have:"Available",
@@ -374,27 +378,49 @@ function uMeta(ua,ue){ return UNIT_BY[ua]||UNIT_BY[ue]||null; }
 function uMetaOf(o){ return o ? uMeta(o.unit_ar,o.unit_en) : null; }
 function famUnits(fam){ return UNIT_DEFS.filter(u=>u.fam===fam); }   // smallest first
 function uLabel(u){ return state.lang==="ar" ? u.ar : u.en; }
-/* does this item's family offer more than one unit to type in? */
-function unitChoices(o){ const m=uMetaOf(o); return m ? famUnits(m.fam) : []; }
-function hasChoice(o){ return unitChoices(o).length>1; }
-function baseFactor(o){ const m=uMetaOf(o); return m ? m.f : 1; }
-/* the unit a person would naturally reach for at this size */
-function naturalUnit(base,fam){
-  if(!fam.length) return null;
-  const big=fam[fam.length-1];
-  return (fam.length>1 && Math.abs(base)>=big.f) ? big : fam[0];
+/* The scale an amount lives on: the unit it is stored in, plus every unit it
+   can be read or typed in. Weight and volume scale by fixed factors, but a
+   tin's size belongs to the product — one cake tin is however many pieces that
+   cake is cut into — so a piece-counted item that names its tin size gains the
+   tin as a second unit to type in, while stock keeps being counted in pieces. */
+function unitScale(ua,ue,per){
+  const m=uMeta(ua,ue);
+  if(!m) return null;
+  const n=Number(per)||0;
+  if(m.fam==="count" && n>1){
+    return {own:m, units:[m, Object.assign({},UNIT_BY["mould"],{f:n})], autoScale:false};
+  }
+  const fam=famUnits(m.fam);
+  return {own:m, units:fam, autoScale:fam.length>1};
+}
+function scaleOf(o){ return o ? unitScale(o.unit_ar,o.unit_en,o.per_mould) : null; }
+function unitChoices(o){ const s=scaleOf(o); return s ? s.units : []; }
+function baseFactor(o){ const s=scaleOf(o); return s ? s.own.f : 1; }
+/* how many of this product one run of its recipe makes */
+function recipeYield(p){
+  const s=scaleOf(p), n=Number(p&&p.per_mould)||0;
+  return (s && s.own.fam==="count" && n>1) ? n : 1;
 }
 /* one amount, written the way a person would say it */
-function fmtAmount(v,ua,ue){
-  const m=uMeta(ua,ue);
-  if(!m) return num(v)+" "+(state.lang==="ar"?(ua||ue||""):(ue||ua||""));
-  const fam=famUnits(m.fam), base=Number(v||0)*m.f;
-  const pick=naturalUnit(base,fam) || m;
+function fmtWith(v,s){
+  const base=Number(v||0)*s.own.f, big=s.units[s.units.length-1];
+  const pick=(s.autoScale && Math.abs(base)>=big.f) ? big : s.units[0];
   return num(base/pick.f)+" "+uLabel(pick);
 }
-function fmtItem(v,item){ return fmtAmount(v,item&&item.unit_ar,item&&item.unit_en); }
-function fmtMove(m){ return fmtAmount(m.qty, m.unit_ar||m.unit, m.unit_en||m.unit); }
-function unitOf(o){ return {unit_ar:o.unit_ar||"", unit_en:o.unit_en||""}; }
+function fmtAmount(v,ua,ue,per){
+  const s=unitScale(ua,ue,per);
+  if(!s) return num(v)+" "+(state.lang==="ar"?(ua||ue||""):(ue||ua||""));
+  return fmtWith(v,s);
+}
+/* "24 حبة · 2 قالب" — only when the tins come out whole */
+function mouldNote(v,item){
+  const n=recipeYield(item); if(n<2) return "";
+  const tins=Number(v||0)/n;
+  return (tins>=1 && Math.abs(tins-Math.round(tins))<1e-9) ? " · "+num(tins)+" "+(state.lang==="ar"?"قالب":"mould") : "";
+}
+function fmtItem(v,item){ return fmtAmount(v,item&&item.unit_ar,item&&item.unit_en,item&&item.per_mould); }
+function fmtMove(m){ return fmtAmount(m.qty, m.unit_ar||m.unit, m.unit_en||m.unit, m.per_mould); }
+function unitOf(o){ const u={unit_ar:o.unit_ar||"", unit_en:o.unit_en||""}; const n=Number(o.per_mould)||0; if(n>1) u.per_mould=n; return u; }
 function ct(o){ if(!o) return ""; return state.lang==="ar" ? (o.cat_ar||o.cat_en||"") : (o.cat_en||o.cat_ar||""); }
 function timeOf(iso){ try{ return new Date(iso).toLocaleString(state.lang==="ar"?"ar-u-nu-latn":"en-GB",{dateStyle:"short",timeStyle:"short"}); }catch(e){ return iso; } }
 function toast(msg){ const w=$("toast"); w.innerHTML='<div>'+esc(msg)+'</div>'; clearTimeout(toast._t); toast._t=setTimeout(()=>{w.innerHTML="";},2600); }
@@ -514,7 +540,7 @@ const state = {
   ingredients:[], products:[], accounts:[], moves:[], settings:{currency:"ر.س",shop_ar:"",shop_en:""},
   session: (()=>{ try{ return JSON.parse(ls("ks_session")||"null"); }catch(e){ return null; } })(),
   authErr:"", busy:false,
-  search:"", lowOnly:false, mFilter:"", makePid:"", makeQty:"",
+  search:"", lowOnly:false, mFilter:"", makePid:"", makeQty:"", makeUnit:"",
   repFrom: shiftDays(-7), repTo: dayKey(),
   repMoves:null, focus:null, hideDemo: ls("ks_demo")==="1"
 };
@@ -726,17 +752,34 @@ function viewItems(kind){
   + '<section class="panel">'+itemsTable(kind)+'</section>';
 }
 
+/* what the chef typed, converted into the product's stock unit */
+function makeQtyInUnits(p){
+  const typed=Number(state.makeQty||0);
+  if(!p||!typed) return 0;
+  const choices=unitChoices(p);
+  const chosen=choices.find(u=>u.en===state.makeUnit) || choices[0];
+  return typed*(chosen?chosen.f:1)/baseFactor(p);
+}
 function viewMake(){
   const p = state.products.find(x=>x.id===state.makePid);
-  const qty = Number(state.makeQty||0);
+  const qty = makeQtyInUnits(p);
+  const runs = p ? qty/recipeYield(p) : 0;   // one recipe run fills one tin
   let lines=[], canGo=false;
   if(p && p.recipe && p.recipe.length && qty>0){
     lines = p.recipe.map(r=>{
-      const ing=findIng(r.id); const need=Number(r.qty||0)*qty; const have=Number(ing?ing.stock:0);
+      const ing=findIng(r.id); const need=Number(r.qty||0)*runs; const have=Number(ing?ing.stock:0);
       return {ing:ing,need:need,have:have,ok:ing&&have>=need};
     });
     canGo = lines.every(l=>l.ok);
   }
+  const mChoices = p ? unitChoices(p) : [];
+  const mSel = (mChoices.find(u=>u.en===state.makeUnit) || mChoices[0] || null);
+  const qtyUnitCtl = !p ? ''
+    : (mChoices.length>1
+      ? '<select id="mu" data-input="makeunit" style="max-width:120px">'
+        + mChoices.map(u=>'<option value="'+u.en+'" '+(mSel&&mSel.en===u.en?"selected":"")+'>'+esc(uLabel(u))+'</option>').join("")
+        + '</select>'
+      : '<span class="pill pill-mute" style="align-self:center;white-space:nowrap">'+esc(un(p))+'</span>');
   const hist = state.moves.filter(m=>m.type==="make_in").slice(0,12);
   return '<div class="phead"><div><h1>'+esc(t("nav_make"))+'</h1><p>'+esc(t("make_sub"))+'</p></div></div>'
   + '<div class="two">'
@@ -744,8 +787,10 @@ function viewMake(){
     + '<div class="field"><label class="f" for="mp">'+esc(t("pick_prod"))+'</label>'
       + '<select id="mp" data-input="makepid"><option value="">—</option>'
       + state.products.map(x=>'<option value="'+x.id+'" '+(x.id===state.makePid?"selected":"")+'>'+esc(nm(x))+'</option>').join("")+'</select></div>'
-    + '<div class="field"><label class="f" for="mq">'+esc(t("make_qty"))+(p?" ("+esc(un(p))+")":"")+'</label>'
-      + '<input id="mq" type="number" min="1" step="1" data-input="makeqty" value="'+esc(state.makeQty)+'"></div>'
+    + '<div class="field"><label class="f" for="mq">'+esc(t("make_qty"))+'</label>'
+      + '<div style="display:flex;gap:8px"><input id="mq" type="number" min="0" step="1" style="flex:1" data-input="makeqty" value="'+esc(state.makeQty)+'">'+qtyUnitCtl+'</div>'
+      + (qty>0 && recipeYield(p)>1 ? '<small class="text-muted" style="display:block;margin-top:5px">= '+esc(fmtItem(qty,p))+esc(mouldNote(qty,p))+'</small>' : '')
+      + '</div>'
     + (p && (!p.recipe||!p.recipe.length) ? '<div class="warnbar">'+esc(t("make_norec"))+'</div>' : '')
     + (lines.length ? '<div class="scroll" style="margin:12px 0"><table><thead><tr><th>'+esc(t("item"))+'</th><th>'+esc(t("need"))+'</th><th>'+esc(t("have"))+'</th><th></th></tr></thead><tbody>'
         + lines.map(l=>'<tr class="'+(l.ok?"":"out")+'"><td>'+esc(l.ing?nm(l.ing):"—")+'</td><td>'+esc(fmtItem(l.need,l.ing))+'</td><td>'+esc(fmtItem(l.have,l.ing))+'</td>'
@@ -951,6 +996,12 @@ function itemForm(kind,x){
     + '<div class="field"><label class="f">'+esc(t("min"))+' (<span class="u-tag">'+esc(state.lang==="ar"?cur:(x.unit_en||cur))+'</span>)</label><input type="number" step="0.001" id="f_min" value="'+esc(x.min!=null?x.min:0)+'"></div>'
     + '<div class="field"><label class="f">'+esc(isIng?t("cost"):t("price"))+' / <span class="u-tag">'+esc(state.lang==="ar"?cur:(x.unit_en||cur))+'</span></label><input type="number" step="0.01" id="f_val" value="'+esc((isIng?x.cost:x.price)||0)+'"></div></div>'
   + (x.id?'':'<div class="field"><label class="f">'+esc(t("opening"))+' (<span class="u-tag">'+esc(state.lang==="ar"?cur:(x.unit_en||cur))+'</span>)</label><input type="number" step="0.001" id="f_open" value="0"></div>')
+  /* a tin only makes sense for something counted in pieces, so the field
+     follows the unit picker and hides itself for anything weighed or poured */
+  + '<div class="field" id="f_pm_wrap" style="'+(cur==="حبة"?"":"display:none")+'">'
+    + '<label class="f">'+esc(t("per_mould"))+'</label>'
+    + '<input type="number" step="1" min="0" id="f_pm" style="max-width:200px" value="'+esc(Number(x.per_mould)>1?x.per_mould:"")+'" placeholder="12">'
+    + '<small class="text-muted" style="display:block;margin-top:4px">'+esc(t("per_mould_hint"))+'</small></div>'
   + '<div class="field"><label class="f">'+esc(t("barcode"))+'</label><div style="display:flex;gap:8px;flex-wrap:wrap">'
     + '<input type="text" id="f_bc" class="mono" style="flex:1;min-width:140px" value="'+esc(x.barcode||"")+'">'
     + '<button type="button" class="btn btn-sm" data-act="genbc">'+esc(t("gen"))+'</button>'
@@ -962,12 +1013,14 @@ function itemForm(kind,x){
       + '<button type="button" class="btn btn-sm" data-act="pickphoto">'+esc(x.photo?t("change_photo"):t("add_photo"))+'</button>'
       + (x.photo?'<button type="button" class="btn btn-sm btn-danger" data-act="rmphoto">'+esc(t("del_photo"))+'</button>':'')
     + '</div></div>'
-  + (isIng?'':recipeEditor(x.recipe||[]));
+  + (isIng?'':recipeEditor(x.recipe||[], x.per_mould));
 }
-function recipeEditor(rec){
+function recipeEditor(rec,per){
+  const n=Number(per)||0;
+  const hint = n>1 ? t("recipe_mould").replace("{n}",n) : t("recipe_hint");
   return '<div style="border-top:1px solid var(--line);margin-top:14px;padding-top:14px">'
     + '<label class="f">'+esc(t("recipe"))+'</label>'
-    + '<p style="margin:0 0 10px;color:var(--ink-2);font-size:.8rem">'+esc(t("recipe_hint"))+'</p>'
+    + '<p id="recHint" style="margin:0 0 10px;color:var(--ink-2);font-size:.8rem">'+esc(hint)+'</p>'
     + '<div id="recBox">'+rec.map(r=>recipeRow(r)).join("")+'</div>'
     + '<button type="button" class="btn btn-sm" data-act="addline">+ '+esc(t("add_line"))+'</button></div>';
 }
@@ -978,10 +1031,10 @@ function recipeUnitControl(ing,chosenEn){
   if(!ing) return '<span class="pill pill-mute">—</span>';
   const m=uMetaOf(ing);
   if(!m) return '<span class="pill pill-mute">'+esc(un(ing))+'</span>';
-  const fam=famUnits(m.fam);
-  if(fam.length<2) return '<span class="pill pill-mute">'+esc(uLabel(m))+'</span>';
+  const opts=unitChoices(ing);
+  if(opts.length<2) return '<span class="pill pill-mute">'+esc(uLabel(m))+'</span>';
   return '<select class="r_u" style="max-width:100px">'
-    + fam.map(u=>'<option value="'+u.en+'" '+(u.en===chosenEn?"selected":"")+'>'+esc(uLabel(u))+'</option>').join("")
+    + opts.map(u=>'<option value="'+u.en+'" '+(u.en===chosenEn?"selected":"")+'>'+esc(uLabel(u))+'</option>').join("")
     + '</select>';
 }
 function recipeRow(r){
@@ -991,7 +1044,8 @@ function recipeRow(r){
   let shown="", chosen = m ? m.en : "";
   if(ing && r.qty!=="" && r.qty!=null){
     const base=Number(r.qty)*baseFactor(ing);
-    const pick=naturalUnit(base, m?famUnits(m.fam):[]) || m;
+    const sc=scaleOf(ing);
+    const pick=(sc && sc.autoScale && Math.abs(base)>=sc.units[sc.units.length-1].f) ? sc.units[sc.units.length-1] : (sc?sc.units[0]:m);
     if(pick){ chosen=pick.en; shown=base/pick.f; } else shown=r.qty;
   }
   return '<div class="recipe-row"><select class="r_id">'
@@ -1009,11 +1063,22 @@ function openItemForm(kind,item){
     btnCancel()+'<button class="btn btn-primary" data-act="saveitem" data-v="'+kind+'" data-id="'+(item?item.id:"")+'">'+t("save")+'</button>',
     kind==="prod");
   const us=$("f_unit");
+  const syncMould=()=>{
+    const wrap=$("f_pm_wrap"), hint=$("recHint");
+    const isPieces = us && us.value.split("|")[0]==="حبة";
+    if(wrap) wrap.style.display = isPieces ? "" : "none";
+    if(hint){
+      const n = isPieces ? Math.floor(Number(($("f_pm")||{}).value)||0) : 0;
+      hint.textContent = n>1 ? t("recipe_mould").replace("{n}",n) : t("recipe_hint");
+    }
+  };
   if(us) us.addEventListener("change",()=>{
     const parts=us.value.split("|");
     const label = state.lang==="ar" ? parts[0] : (parts[1]||parts[0]);
     document.querySelectorAll(".u-tag").forEach(n=>{ n.textContent=label; });
+    syncMould();
   });
+  const pmEl=$("f_pm"); if(pmEl) pmEl.addEventListener("input",syncMould);
 }
 async function shrinkPhoto(file){
   const url=URL.createObjectURL(file);
@@ -1034,7 +1099,8 @@ function readItemForm(kind,id){
     const rid=row.querySelector(".r_id").value, q=Number(row.querySelector(".r_qty").value);
     if(rid && q>0){
       const ing=findIng(rid), sel=row.querySelector("select.r_u");
-      const typedUnit = sel && UNIT_BY[sel.value] ? UNIT_BY[sel.value].f : baseFactor(ing);
+      const chosen = sel ? unitChoices(ing).find(u=>u.en===sel.value) : null;
+      const typedUnit = chosen ? chosen.f : baseFactor(ing);
       rec.push({id:rid, qty: q*typedUnit/baseFactor(ing)});   // as typed → the ingredient's own unit
     }
   });
@@ -1048,6 +1114,8 @@ function readItemForm(kind,id){
     min:Number($("f_min").value)||0, barcode:bc||"", photo:photoBuf||""
   };
   if(isIng) doc.cost=Number($("f_val").value)||0; else { doc.price=Number($("f_val").value)||0; doc.recipe=rec; }
+  const pmEl=$("f_pm"); const pm=pmEl?Math.floor(Number(pmEl.value)||0):0;
+  doc.per_mould = (parts[0]==="حبة" && pm>1) ? pm : 0;
   const open=$("f_open"); if(open) doc.stock=Number(open.value)||0;
   return {doc:doc};
 }
@@ -1224,7 +1292,7 @@ document.addEventListener("click",async (ev)=>{
       openModal(nm(item),
         '<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
         + (item.photo?'<img src="'+esc(item.photo)+'" alt="" style="width:90px;height:90px;object-fit:cover;border-radius:10px;border:1px solid var(--line)">':'')
-        + '<div><div>'+esc(t("avail"))+': '+stockPill(item)+'</div>'
+        + '<div><div>'+esc(t("avail"))+': '+stockPill(item)+'<span class="text-muted" style="font-size:.82rem">'+esc(mouldNote(item.stock,item))+'</span></div>'
         + '<div style="color:var(--ink-2);font-size:.85rem">'+esc(t("min"))+': '+esc(fmtItem(item.min,item))+' · '+esc(isIng?t("cost"):t("price"))+': '+esc(money(isIng?item.cost:item.price))+'</div>'
         + (item.barcode?'<div class="mono">'+esc(item.barcode)+'</div>':'')+'</div></div>'
         + '<div class="acts" style="margin-top:14px">'
@@ -1259,22 +1327,25 @@ document.addEventListener("click",async (ev)=>{
       const it = state.ingredients.find(x=>x.id===id)||state.products.find(x=>x.id===id);
       const sel=$("mv_u");
       /* what was typed, expressed in the item's own unit */
-      const q = (sel && UNIT_BY[sel.value]) ? (typed*UNIT_BY[sel.value].f)/baseFactor(it) : typed;
+      const chosenU = sel ? unitChoices(it).find(u=>u.en===sel.value) : null;
+      const q = chosenU ? (typed*chosenU.f)/baseFactor(it) : typed;
       if(!q || (v!=="adjust" && q<=0)){ toast(t("err_qty")); return; }
       try{ await applyMove(it,el.dataset.k,v,v==="adjust"?q:Math.abs(q),note); closeModal(); toast(t("done")); }
       catch(e){ toast(e&&e.code==="stock"?t("err_stock"):dbErr(e)); }
       break;
     }
-    case "makefrom": state.tab="make"; state.makePid=id; state.makeQty=""; render(); break;
+    case "makefrom": state.tab="make"; state.makePid=id; state.makeQty=""; state.makeUnit=""; render(); break;
     case "produce": {
       if(!can("produce")){ toast(t("no_perm")); return; }
-      const p=state.products.find(x=>x.id===state.makePid), qty=Number(state.makeQty||0);
+      const p=state.products.find(x=>x.id===state.makePid);
+      const qty=makeQtyInUnits(p);
       if(!p||!qty) return;
+      const runs=qty/recipeYield(p);
       await guard(async ()=>{
         const entries=[];
         for(const r of p.recipe){
           const ing=findIng(r.id); if(!ing) continue;
-          const need=Number(r.qty)*qty;
+          const need=Number(r.qty)*runs;
           await state.db.doc("ingredients/"+ing.id).update({stock:Number(ing.stock||0)-need});
           entries.push(Object.assign({kind:"ing",item_id:ing.id,item_ar:ing.name_ar,item_en:ing.name_en,type:"make_out",qty:need,note:nm(p)},unitOf(ing)));
         }
@@ -1331,7 +1402,8 @@ document.addEventListener("change",async (ev)=>{
   const key=el.dataset&&el.dataset.input;
   if(key==="lowonly"){ state.lowOnly=el.checked; render(); }
   if(key==="mfilter"){ state.mFilter=el.value; render(); }
-  if(key==="makepid"){ state.makePid=el.value; render(); }
+  if(key==="makepid"){ state.makePid=el.value; state.makeUnit=""; render(); }
+  if(key==="makeunit"){ state.makeUnit=el.value; render(); }
   if(key==="repfrom"){ state.repFrom=el.value; loadRepMoves(); }
   if(key==="repto"){ state.repTo=el.value; loadRepMoves(); }
 });
