@@ -255,6 +255,9 @@ const STR = {
     role_preset:"صلاحيات جاهزة", sec_note:"الحساب ينظّم عمل الفريق داخل الصفحة. الحماية الفعلية من مين تشارك معه الرابط.",
     no_crypto:"متصفحك ما يدعم التشفير المطلوب لتسجيل الدخول. جرّب متصفح أحدث.",
     acct_denied:"هذا الجهاز ما عنده صلاحية تعديل المستخدمين. صاحب الصفحة لازم يشارك الرابط معك بصلاحية «يقدر يعدّل».",
+    unit_converted:"تم تحويل الأرقام تلقائياً مع تغيير الوحدة.",
+    unit_cross:"ما نقدر نغيّر الوحدة من {a} إلى {b} — نوع القياس مختلف. فرّغ الكمية وشيل الصنف من الوصفات أولاً.",
+    in_use_del:"ما نقدر نحذف هذا الصنف — مستخدم في وصفة: {list}. شيله من وصفاتها أولاً.",
     set_sub:"إعدادات المحل وفريق العمل وصيانة السجلات.",
     cleanup:"حذف الحركات الأقدم من 3 أشهر", cleanup_done:"تم حذف السجلات القديمة.",
     saved:"تم الحفظ", deleted:"تم الحذف", done:"تمت العملية",
@@ -326,6 +329,9 @@ const STR = {
     role_preset:"Preset", sec_note:"Accounts organise your team inside the page. Real protection comes from who you share the link with.",
     no_crypto:"This browser can't run the encryption sign-in needs. Try a newer browser.",
     acct_denied:"This device isn't allowed to change users. The page owner needs to share the link with you as “can edit”.",
+    unit_converted:"Amounts were converted along with the unit.",
+    unit_cross:"Can't change the unit from {a} to {b} — they measure different things. Empty the stock and remove it from recipes first.",
+    in_use_del:"Can't delete this item — it's used in: {list}. Remove it from those recipes first.",
     set_sub:"Shop details, your team, and record housekeeping.",
     cleanup:"Delete movements older than 3 months", cleanup_done:"Old records deleted.",
     saved:"Saved", deleted:"Deleted", done:"Done",
@@ -539,7 +545,7 @@ const state = {
   ready:false, db:null, downloads:null, dbFailed:false,
   ingredients:[], products:[], accounts:[], moves:[], settings:{currency:"ر.س",shop_ar:"",shop_en:""},
   session: (()=>{ try{ return JSON.parse(ls("ks_session")||"null"); }catch(e){ return null; } })(),
-  authErr:"", busy:false,
+  authErr:"", busy:false, loginUser:"",
   search:"", lowOnly:false, mFilter:"", makePid:"", makeQty:"", makeUnit:"",
   repFrom: shiftDays(-7), repTo: dayKey(),
   repMoves:null, focus:null, hideDemo: ls("ks_demo")==="1"
@@ -905,7 +911,7 @@ function gateHtml(){
     + '<p style="text-align:center;color:var(--ink-2);font-size:.85rem;margin:6px 0 18px">'+esc(first?t("setup_h"):t("login_h"))+'</p>'
     + (state.authErr?'<div class="critbar" style="margin-bottom:12px">'+esc(state.authErr)+'</div>':'')
     + (hasCrypto?'':'<div class="critbar" style="margin-bottom:12px">'+esc(t("no_crypto"))+'</div>')
-    + '<div class="field"><label class="f" for="lg_u">'+esc(t("user"))+'</label><input type="text" id="lg_u" autocomplete="username" autocapitalize="off" spellcheck="false"></div>'
+    + '<div class="field"><label class="f" for="lg_u">'+esc(t("user"))+'</label><input type="text" id="lg_u" autocomplete="username" autocapitalize="off" spellcheck="false" value="'+esc(state.loginUser||"")+'"></div>'
     + '<div class="field"><label class="f" for="lg_p">'+esc(t("pass"))+'</label><input type="password" id="lg_p" autocomplete="'+(first?"new-password":"current-password")+'"></div>'
     + (first?'<div class="field"><label class="f" for="lg_p2">'+esc(t("pass2"))+'</label><input type="password" id="lg_p2" autocomplete="new-password"></div>':'')
     + '<button class="btn btn-primary" style="width:100%;justify-content:center" data-act="'+(first?"setupadmin":"dologin")+'" '+(state.busy||!hasCrypto?"disabled":"")+'>'
@@ -932,7 +938,9 @@ function render(){
   document.body.classList.toggle("gated",gated);
   if(gated){
     $("rail").innerHTML=""; $("top").innerHTML=""; $("view").innerHTML=gateHtml();
-    const u=$("lg_u"); if(u && !state.busy) u.focus();
+    /* a wrong password shouldn't cost someone their username too — keep it and
+       put the cursor straight into the password box */
+    if(!state.busy){ const u=$("lg_u"), pw=$("lg_p"); if(state.loginUser && pw) pw.focus(); else if(u) u.focus(); }
     return;
   }
   $("rail").innerHTML=railHtml();
@@ -1063,6 +1071,17 @@ function openItemForm(kind,item){
     btnCancel()+'<button class="btn btn-primary" data-act="saveitem" data-v="'+kind+'" data-id="'+(item?item.id:"")+'">'+t("save")+'</button>',
     kind==="prod");
   const us=$("f_unit");
+  /* changing the unit rewrites what every number on this form means, so the
+     numbers move with it — 10 كجم becomes 10000 جرام, not a silent 10 grams */
+  let prevUnit = us ? us.value.split("|")[0] : "";
+  const convertFields=()=>{
+    const from=uMeta(prevUnit), to=uMeta(us.value.split("|")[0]);
+    prevUnit = us.value.split("|")[0];
+    if(!from || !to || from.fam!==to.fam || from.f===to.f) return;
+    const k=from.f/to.f;                       // old unit → new unit
+    const scale=(el,mul)=>{ if(el && el.value!=="" && isFinite(Number(el.value))) el.value=String(Math.round(Number(el.value)*mul*1e6)/1e6); };
+    scale($("f_min"),k); scale($("f_open"),k); scale($("f_val"),1/k);
+  };
   const syncMould=()=>{
     const wrap=$("f_pm_wrap"), hint=$("recHint");
     const isPieces = us && us.value.split("|")[0]==="حبة";
@@ -1073,6 +1092,7 @@ function openItemForm(kind,item){
     }
   };
   if(us) us.addEventListener("change",()=>{
+    convertFields();
     const parts=us.value.split("|");
     const label = state.lang==="ar" ? parts[0] : (parts[1]||parts[0]);
     document.querySelectorAll(".u-tag").forEach(n=>{ n.textContent=label; });
@@ -1197,6 +1217,7 @@ document.addEventListener("click",async (ev)=>{
     case "hidedemo": state.hideDemo=true; ls("ks_demo","1"); render(); break;
     case "setupadmin": {
       const u=$("lg_u").value.trim(), p=$("lg_p").value, p2=$("lg_p2").value;
+      state.loginUser=u;
       if(!u||!p){ state.authErr=t("need_user"); render(); return; }
       if(p.length<6){ state.authErr=t("pass_short"); render(); return; }
       if(p!==p2){ state.authErr=t("pass_match"); render(); return; }
@@ -1205,22 +1226,23 @@ document.addEventListener("click",async (ev)=>{
         const salt=randSalt(), hash=await derive(p,salt), nid=uid("acct");
         await state.db.doc("accounts/"+nid).set({username:u,salt:salt,hash:hash,role:"admin",
           perms:Object.assign({},PRESETS.admin),active:true,created_at:new Date().toISOString()});
-        state.session={id:nid}; ls("ks_session",JSON.stringify(state.session));
+        state.session={id:nid}; ls("ks_session",JSON.stringify(state.session)); state.loginUser="";
       }catch(e){ state.authErr = (e&&e.code==="invalid_argument") ? t("acct_denied") : dbErr(e); }
       state.busy=false; render(); break;
     }
     case "dologin": {
       const u=$("lg_u").value.trim().toLowerCase(), p=$("lg_p").value;
+      state.loginUser=$("lg_u").value.trim();
       if(!u||!p){ state.authErr=t("need_user"); render(); return; }
       state.busy=true; state.authErr=""; render();
       const acct=state.accounts.find(a=>String(a.username||"").toLowerCase()===u && a.active!==false);
       let ok=false;
       if(acct){ try{ ok = (await derive(p,acct.salt))===acct.hash; }catch(e){ ok=false; } }
-      if(ok){ state.session={id:acct.id}; ls("ks_session",JSON.stringify(state.session)); state.authErr=""; }
+      if(ok){ state.session={id:acct.id}; ls("ks_session",JSON.stringify(state.session)); state.authErr=""; state.loginUser=""; }
       else state.authErr=t("bad_login");
       state.busy=false; render(); break;
     }
-    case "signout": state.session=null; ls("ks_session","null"); state.tab="dash"; render(); break;
+    case "signout": state.session=null; ls("ks_session","null"); state.tab="dash"; state.loginUser=""; state.authErr=""; render(); break;
     case "adduser": if(can("admin")) userModal(null); break;
     case "edituser": if(can("admin")) userModal(state.accounts.find(a=>a.id===id)); break;
     case "saveuser": {
@@ -1273,8 +1295,38 @@ document.addEventListener("click",async (ev)=>{
       const r=readItemForm(v,id||undefined);
       if(r.err){ toast(r.err); return; }
       const coll = v==="ing"?"ingredients":"products";
+      let recipeFix=[], converted=false;
+      if(id){
+        const existing=(v==="ing"?state.ingredients:state.products).find(x=>x.id===id);
+        const usedIn = v==="ing" ? state.products.filter(p=>(p.recipe||[]).some(l=>l.id===id)) : [];
+        if(existing && existing.unit_ar!==r.doc.unit_ar){
+          const from=uMetaOf(existing), to=uMeta(r.doc.unit_ar,r.doc.unit_en);
+          if(from && to && from.fam!==to.fam && (Number(existing.stock||0)!==0 || usedIn.length)){
+            toast(t("unit_cross").replace("{a}",uLabel(from)).replace("{b}",uLabel(to))); return;
+          }
+          if(from && to && from.fam===to.fam && from.f!==to.f){
+            const k=from.f/to.f;                       // old unit → new unit
+            r.doc.stock = Number(existing.stock||0)*k;
+            recipeFix = usedIn.map(p=>({id:p.id, recipe:(p.recipe||[]).map(l=>
+              l.id===id ? {id:l.id, qty:Number(l.qty)*k} : l)}));
+            converted=true;
+          }
+        }
+        /* the same trap one level up: a recipe that yielded a tin of 12 means
+           something else once the tin holds 1, so its amounts move too */
+        if(existing && v==="prod"){
+          const oldY=recipeYield(existing), newY=recipeYield(Object.assign({},existing,r.doc));
+          if(oldY!==newY && (r.doc.recipe||[]).length && JSON.stringify(r.doc.recipe)===JSON.stringify(existing.recipe||[])){
+            r.doc.recipe=(r.doc.recipe||[]).map(l=>({id:l.id, qty:Number(l.qty)*(newY/oldY)}));
+            converted=true;
+          }
+        }
+      }
       await guard(async ()=>{
-        if(id){ await state.db.doc(coll+"/"+id).update(r.doc); }
+        if(id){
+          await state.db.doc(coll+"/"+id).update(r.doc);
+          for(const u of recipeFix) await state.db.doc("products/"+u.id).update({recipe:u.recipe});
+        }
         else{
           const nid=uid(v==="ing"?"ing":"prd");
           const doc=Object.assign({stock:0,created_at:new Date().toISOString()},r.doc);
@@ -1282,6 +1334,7 @@ document.addEventListener("click",async (ev)=>{
           if(Number(doc.stock)>0) await logMoves([{kind:v,item_id:nid,item_ar:doc.name_ar,item_en:doc.name_en,unit_ar:doc.unit_ar,unit_en:doc.unit_en,type:"receive",qty:Number(doc.stock),note:t("opening")}]);
         }
         closeModal();
+        if(converted) setTimeout(()=>toast(t("unit_converted")),900);
       }, t("saved"));
       break;
     }
@@ -1315,6 +1368,13 @@ document.addEventListener("click",async (ev)=>{
     }
     case "delitem": {
       if(!can("del")){ toast(t("no_perm")); return; }
+      if(el.dataset.k==="ing"){
+        const usedIn=state.products.filter(p=>(p.recipe||[]).some(l=>l.id===id));
+        if(usedIn.length){
+          toast(t("in_use_del").replace("{list}", usedIn.slice(0,4).map(nm).join("، ") + (usedIn.length>4?"…":"")));
+          return;
+        }
+      }
       if(!confirm(t("del_q"))) return;
       await guard(async ()=>{ await state.db.doc((el.dataset.k==="ing"?"ingredients":"products")+"/"+id).delete(); closeModal(); }, t("deleted"));
       break;
