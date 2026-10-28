@@ -258,6 +258,20 @@ const STR = {
     unit_converted:"تم تحويل الأرقام تلقائياً مع تغيير الوحدة.",
     unit_cross:"ما نقدر نغيّر الوحدة من {a} إلى {b} — نوع القياس مختلف. فرّغ الكمية وشيل الصنف من الوصفات أولاً.",
     in_use_del:"ما نقدر نحذف هذا الصنف — مستخدم في وصفة: {list}. شيله من وصفاتها أولاً.",
+    /* branches */
+    branches:"الفروع", branch:"الفرع", add_branch:"إضافة فرع", edit_branch:"تعديل الفرع",
+    all_branches:"كل الفروع", branch_ar:"اسم الفرع بالعربي", branch_en:"اسم الفرع بالإنجليزي",
+    branch_hint:"كل فرع له أصنافه ووصفاته ومخزونه وحدوده الدنيا المستقلة.",
+    branch_del_q:"حذف هذا الفرع؟", branch_in_use:"ما نقدر نحذف الفرع — فيه {n} صنف. احذف أصنافه أولاً.",
+    last_branch:"لازم يبقى فرع واحد على الأقل.",
+    user_branch:"فرع الموظف", branch_all_opt:"كل الفروع (مدير)",
+    no_branch_yet:"أنشئ أول فرع عشان تبدأ تدخل أصنافك.",
+    transfer:"نقل لفرع", transfer_title:"نقل بين الفروع", to_branch:"إلى فرع",
+    dest_item:"الصنف في الفرع المستلم", create_dest:"➕ إنشاء صنف جديد بنفس البيانات",
+    m_transfer_out:"نقل إلى فرع (صادر)", m_transfer_in:"نقل من فرع (وارد)",
+    transfer_same:"اختر فرعاً غير الفرع الحالي.",
+    unit_mismatch:"وحدة الصنف في الفرع المستلم ({b}) ما تتوافق مع ({a}).",
+    pick_dest:"اختر الصنف في الفرع المستلم.",
     set_sub:"إعدادات المحل وفريق العمل وصيانة السجلات.",
     cleanup:"حذف الحركات الأقدم من 3 أشهر", cleanup_done:"تم حذف السجلات القديمة.",
     saved:"تم الحفظ", deleted:"تم الحذف", done:"تمت العملية",
@@ -332,6 +346,20 @@ const STR = {
     unit_converted:"Amounts were converted along with the unit.",
     unit_cross:"Can't change the unit from {a} to {b} — they measure different things. Empty the stock and remove it from recipes first.",
     in_use_del:"Can't delete this item — it's used in: {list}. Remove it from those recipes first.",
+    /* branches */
+    branches:"Branches", branch:"Branch", add_branch:"Add branch", edit_branch:"Edit branch",
+    all_branches:"All branches", branch_ar:"Branch name (Arabic)", branch_en:"Branch name (English)",
+    branch_hint:"Each branch keeps its own items, recipes, stock and minimums.",
+    branch_del_q:"Delete this branch?", branch_in_use:"Can't delete the branch — it holds {n} items. Delete those first.",
+    last_branch:"At least one branch must remain.",
+    user_branch:"Works at", branch_all_opt:"All branches (manager)",
+    no_branch_yet:"Create your first branch to start adding items.",
+    transfer:"Transfer", transfer_title:"Transfer between branches", to_branch:"To branch",
+    dest_item:"Item at the receiving branch", create_dest:"➕ Create it there with the same details",
+    m_transfer_out:"Transferred out", m_transfer_in:"Transferred in",
+    transfer_same:"Pick a branch other than the current one.",
+    unit_mismatch:"The receiving item's unit ({b}) doesn't match ({a}).",
+    pick_dest:"Choose the item at the receiving branch.",
     set_sub:"Shop details, your team, and record housekeeping.",
     cleanup:"Delete movements older than 3 months", cleanup_done:"Old records deleted.",
     saved:"Saved", deleted:"Deleted", done:"Done",
@@ -349,8 +377,9 @@ const STR = {
     lang:"English", print_hint:"Use your browser's print if the print window doesn't open."
   }
 };
-const MTYPES = ["receive","make_out","make_in","sell","waste","adjust"];
-const MLABEL = {receive:"m_receive",make_out:"m_make_out",make_in:"m_make_in",sell:"m_sell",waste:"m_waste",adjust:"m_adjust"};
+const MTYPES = ["receive","make_out","make_in","sell","waste","adjust","transfer_out","transfer_in"];
+const MLABEL = {receive:"m_receive",make_out:"m_make_out",make_in:"m_make_in",sell:"m_sell",waste:"m_waste",adjust:"m_adjust",
+  transfer_out:"m_transfer_out", transfer_in:"m_transfer_in"};
 
 /* ---------------------------------------------------------------- utils */
 const $ = (id)=>document.getElementById(id);
@@ -543,7 +572,8 @@ const state = {
   lang: ls("ks_lang")||"ar",
   tab: "dash",
   ready:false, db:null, downloads:null, dbFailed:false,
-  ingredients:[], products:[], accounts:[], moves:[], settings:{currency:"ر.س",shop_ar:"",shop_en:""},
+  ingredients:[], products:[], accounts:[], moves:[], branches:[], branch:"",
+  settings:{currency:"ر.س",shop_ar:"",shop_en:""},
   session: (()=>{ try{ return JSON.parse(ls("ks_session")||"null"); }catch(e){ return null; } })(),
   authErr:"", busy:false, loginUser:"",
   search:"", lowOnly:false, mFilter:"", makePid:"", makeQty:"", makeUnit:"",
@@ -557,6 +587,34 @@ function meAcct(){
   return state.accounts.find(a=>a.id===state.session.id && a.active!==false) || null;
 }
 function meName(){ const a=meAcct(); return a?a.username:""; }
+
+/* ------------------------------------------------------------- branches */
+/* Every branch keeps its own items, recipes, stock and minimums, so an item
+   record belongs to exactly one branch. Records saved before branches existed
+   fall back to the first branch rather than disappearing. */
+function defaultBranchId(){
+  /* the oldest branch, not the first alphabetically — adding a branch whose
+     name sorts earlier must not silently move older records into it */
+  if(!state.branches.length) return "";
+  return state.branches.reduce((a,b)=> String(a.created_at||"")<=String(b.created_at||"") ? a : b).id;
+}
+function branchOf(x){ return (x && x.branch) || defaultBranchId(); }
+function branchById(id){ return state.branches.find(b=>b.id===id) || null; }
+function branchName(id){ const b=branchById(id); return b ? nm(b) : "—"; }
+/* a manager may stand in every branch at once; everyone else is in theirs */
+function canSeeAllBranches(){ const a=meAcct(); return !!a && (a.role==="admin" || a.branch==="*"); }
+function inBranch(x){ return !state.branch || branchOf(x)===state.branch; }
+function curIngs(){ return state.ingredients.filter(inBranch); }
+function curProds(){ return state.products.filter(inBranch); }
+function curMoves(){ return state.moves.filter(m=>!state.branch || (m.branch||defaultBranchId())===state.branch); }
+/* keep the chosen branch valid as accounts and branches load */
+function ensureBranch(){
+  const a=meAcct();
+  if(!a) return;                                   // nobody signed in yet — nothing to pin
+  if(!canSeeAllBranches()){ state.branch = a.branch || defaultBranchId(); return; }
+  /* a manager opens on every branch at once and narrows down from there */
+  if(state.branch && !branchById(state.branch)) state.branch="";
+}
 const deviceId = (()=>{ let d=ls("ks_dev"); if(!d){ d="dev_"+Math.random().toString(36).slice(2,10); ls("ks_dev",d); } return d; })();
 
 function applyDir(){
@@ -582,7 +640,8 @@ async function initDb(){
   };
   on("ingredients", v=>state.ingredients=v.sort((a,b)=>String(a.name_ar||"").localeCompare(String(b.name_ar||""),"ar")));
   on("products", v=>state.products=v.sort((a,b)=>String(a.name_ar||"").localeCompare(String(b.name_ar||""),"ar")));
-  on("accounts", v=>state.accounts=v.sort((a,b)=>String(a.username||"").localeCompare(String(b.username||""))));
+  on("accounts", v=>{ state.accounts=v.sort((a,b)=>String(a.username||"").localeCompare(String(b.username||""))); ensureBranch(); });
+  on("branches", v=>{ state.branches=v.sort((a,b)=>String(a.name_ar||"").localeCompare(String(b.name_ar||""),"ar")); ensureBranch(); });
   on("movements", v=>{
     const out=[];
     v.forEach(d=>(d.entries||[]).forEach(e=>out.push(e)));
@@ -606,7 +665,7 @@ async function logMoves(entries){
   }
   let prev=[];
   try{ const s=await ref.get(); if(s.exists) prev=s.data().entries||[]; }catch(e){}
-  const stamped=entries.map(e=>Object.assign({id:uid("mv"),at:new Date().toISOString(),by:meName()},e));
+  const stamped=entries.map(e=>Object.assign({id:uid("mv"),at:new Date().toISOString(),by:meName(),branch:state.branch||defaultBranchId()},e));
   await ref.set({date:key,entries:prev.concat(stamped)});
 }
 function dbErr(e){
@@ -628,7 +687,7 @@ async function guard(fn,okMsg,ctx){
 /* ------------------------------------------------------------ selectors */
 const isLow=(x)=>Number(x.stock||0) <= Number(x.min||0);
 const isOut=(x)=>Number(x.stock||0) <= 0;
-function lowItems(){ return state.ingredients.filter(isLow).concat(state.products.filter(isLow)); }
+function lowItems(){ return curIngs().filter(isLow).concat(curProds().filter(isLow)); }
 function findIng(id){ return state.ingredients.find(x=>x.id===id); }
 function matches(x,q){
   if(!q) return true; const s=q.trim().toLowerCase();
@@ -636,7 +695,7 @@ function matches(x,q){
 }
 function barcodeTaken(code,exceptId){
   if(!code) return false;
-  return state.ingredients.concat(state.products).some(x=>x.barcode===code && x.id!==exceptId);
+  return curIngs().concat(curProds()).some(x=>x.barcode===code && x.id!==exceptId);
 }
 function can(perm){
   const a=meAcct(); if(!a) return false;
@@ -659,9 +718,19 @@ function langSeg(){
     + '<button data-act="lang" data-v="ar" aria-pressed="'+(state.lang==="ar")+'">العربية</button>'
     + '<button data-act="lang" data-v="en" aria-pressed="'+(state.lang==="en")+'">English</button></div>';
 }
+function branchSeg(){
+  if(!state.branches.length) return "";
+  if(!canSeeAllBranches()){
+    return '<span class="who" style="cursor:default"><span class="role">'+esc(t("branch"))+'</span>'+esc(branchName(state.branch))+'</span>';
+  }
+  return '<select data-input="branch" style="max-width:190px">'
+    + '<option value="" '+(state.branch?"":"selected")+'>'+esc(t("all_branches"))+'</option>'
+    + state.branches.map(b=>'<option value="'+b.id+'" '+(state.branch===b.id?"selected":"")+'>'+esc(nm(b))+'</option>').join("")
+    + '</select>';
+}
 function topHtml(){
   const a=meAcct();
-  return langSeg()
+  return langSeg()+branchSeg()
     + (a?'<div style="display:flex;gap:8px;align-items:center">'
         + '<span class="who" style="cursor:default">'+esc(a.username)+'<span class="role">'+esc(t("role_"+(a.role||"staff")))+'</span></span>'
         + '<button class="btn btn-sm" data-act="signout">'+esc(t("signout"))+'</button></div>' : '');
@@ -672,18 +741,20 @@ function stockPill(x){
 }
 function rowClass(x){ return isOut(x)?"out":(isLow(x)?"low":""); }
 function nameCell(x){
+  /* when standing in every branch at once, each row says where it lives */
+  const sub = !state.branch ? branchName(branchOf(x)) : ct(x);
   return '<div class="name">'+(x.photo?'<img class="thumb" src="'+esc(x.photo)+'" alt="">':'')
-    +'<span><b>'+esc(nm(x))+'</b>'+(ct(x)?'<small>'+esc(ct(x))+'</small>':'')+'</span></div>';
+    +'<span><b>'+esc(nm(x))+'</b>'+(sub?'<small>'+esc(sub)+'</small>':'')+'</span></div>';
 }
 
 function viewDash(){
-  const ing=state.ingredients, pr=state.products;
+  const ing=curIngs(), pr=curProds();
   const lows=lowItems(), outs=ing.concat(pr).filter(isOut);
   const vIng=ing.reduce((s,x)=>s+Number(x.stock||0)*Number(x.cost||0),0);
   const vPr=pr.reduce((s,x)=>s+Number(x.stock||0)*Number(x.price||0),0);
   const weekAgo=shiftDays(-7);
   const made={};
-  state.moves.filter(m=>m.type==="make_in" && String(m.at||"").slice(0,10)>=weekAgo)
+  curMoves().filter(m=>m.type==="make_in" && String(m.at||"").slice(0,10)>=weekAgo)
     .forEach(m=>{ const k=m.item_id; made[k]=made[k]||{n:0,ar:m.item_ar,en:m.item_en,ua:m.unit_ar||m.unit,ue:m.unit_en||m.unit}; made[k].n+=Number(m.qty||0); });
   const top=Object.values(made).sort((a,b)=>b.n-a.n).slice(0,5);
   return '<div class="phead"><div><h1>'+esc(t("nav_dash"))+'</h1><p>'+esc(t("dash_sub"))+'</p></div></div>'
@@ -709,7 +780,7 @@ function viewDash(){
       + (top.length?'<div class="scroll"><table><tbody>'+top.map(x=>'<tr><td>'+esc(state.lang==="ar"?x.ar:x.en)+'</td><td style="text-align:end">'+esc(fmtAmount(x.n,x.ua,x.ue))+'</td></tr>').join("")+'</tbody></table></div>'
         : '<div class="empty">'+esc(t("none"))+'</div>')
     + '<header style="border-top:1px solid var(--line)"><h2>'+esc(t("recent"))+'</h2></header>'
-      + (state.moves.length?'<div class="scroll"><table><tbody>'+state.moves.slice(0,6).map(m=>
+      + (curMoves().length?'<div class="scroll"><table><tbody>'+curMoves().slice(0,6).map(m=>
           '<tr><td>'+esc(state.lang==="ar"?m.item_ar:m.item_en)+'<small style="display:block;color:var(--ink-2);font-size:.74rem">'+esc(t(MLABEL[m.type]||"m_adjust"))+'</small></td>'
           +'<td style="text-align:end;white-space:nowrap">'+esc(fmtMove(m))+'</td></tr>').join("")+'</tbody></table></div>'
         : '<div class="empty">'+esc(t("none"))+'</div>')
@@ -720,7 +791,7 @@ function tile(k,v,cls){ return '<div class="tile '+(cls||"")+'"><div class="k">'
 
 function itemsTable(kind){
   const isIng = kind==="ing";
-  let rows = (isIng?state.ingredients:state.products).filter(x=>matches(x,state.search));
+  let rows = (isIng?curIngs():curProds()).filter(x=>matches(x,state.search));
   if(state.lowOnly) rows=rows.filter(isLow);
   const head='<tr><th>'+esc(t("name"))+'</th><th>'+esc(t("avail"))+'</th><th>'+esc(t("min"))+'</th>'
     + '<th>'+esc(isIng?t("cost"):t("price"))+'</th>'
@@ -767,7 +838,7 @@ function makeQtyInUnits(p){
   return typed*(chosen?chosen.f:1)/baseFactor(p);
 }
 function viewMake(){
-  const p = state.products.find(x=>x.id===state.makePid);
+  const p = curProds().find(x=>x.id===state.makePid);
   const qty = makeQtyInUnits(p);
   const runs = p ? qty/recipeYield(p) : 0;   // one recipe run fills one tin
   let lines=[], canGo=false;
@@ -786,13 +857,13 @@ function viewMake(){
         + mChoices.map(u=>'<option value="'+u.en+'" '+(mSel&&mSel.en===u.en?"selected":"")+'>'+esc(uLabel(u))+'</option>').join("")
         + '</select>'
       : '<span class="pill pill-mute" style="align-self:center;white-space:nowrap">'+esc(un(p))+'</span>');
-  const hist = state.moves.filter(m=>m.type==="make_in").slice(0,12);
+  const hist = curMoves().filter(m=>m.type==="make_in").slice(0,12);
   return '<div class="phead"><div><h1>'+esc(t("nav_make"))+'</h1><p>'+esc(t("make_sub"))+'</p></div></div>'
   + '<div class="two">'
   + '<section class="panel"><div class="body">'
     + '<div class="field"><label class="f" for="mp">'+esc(t("pick_prod"))+'</label>'
       + '<select id="mp" data-input="makepid"><option value="">—</option>'
-      + state.products.map(x=>'<option value="'+x.id+'" '+(x.id===state.makePid?"selected":"")+'>'+esc(nm(x))+'</option>').join("")+'</select></div>'
+      + curProds().map(x=>'<option value="'+x.id+'" '+(x.id===state.makePid?"selected":"")+'>'+esc(nm(x))+'</option>').join("")+'</select></div>'
     + '<div class="field"><label class="f" for="mq">'+esc(t("make_qty"))+'</label>'
       + '<div style="display:flex;gap:8px"><input id="mq" type="number" min="0" step="1" style="flex:1" data-input="makeqty" value="'+esc(state.makeQty)+'">'+qtyUnitCtl+'</div>'
       + (qty>0 && recipeYield(p)>1 ? '<small class="text-muted" style="display:block;margin-top:5px">= '+esc(fmtItem(qty,p))+esc(mouldNote(qty,p))+'</small>' : '')
@@ -815,16 +886,20 @@ function viewMake(){
 
 function movesTable(list){
   if(!list.length) return '<div class="empty">'+esc(t("none"))+'</div>';
-  return '<div class="scroll"><table><thead><tr><th>'+esc(t("date"))+'</th><th>'+esc(t("item"))+'</th><th>'+esc(t("type"))+'</th><th>'+esc(t("qty"))+'</th><th>'+esc(t("by"))+'</th><th>'+esc(t("note"))+'</th></tr></thead><tbody>'
+  const showBranch = !state.branch && state.branches.length>1;
+  return '<div class="scroll"><table><thead><tr><th>'+esc(t("date"))+'</th><th>'+esc(t("item"))+'</th>'
+    + (showBranch?'<th>'+esc(t("branch"))+'</th>':'')
+    + '<th>'+esc(t("type"))+'</th><th>'+esc(t("qty"))+'</th><th>'+esc(t("by"))+'</th><th>'+esc(t("note"))+'</th></tr></thead><tbody>'
     + list.map(m=>{
-      const cls = m.type==="waste"?"pill-crit":(m.type==="make_in"||m.type==="receive"?"pill-ok":"pill-mute");
+      const cls = m.type==="waste"?"pill-crit":((m.type==="make_in"||m.type==="receive"||m.type==="transfer_in")?"pill-ok":"pill-mute");
       return '<tr><td style="white-space:nowrap">'+esc(timeOf(m.at))+'</td><td>'+esc(state.lang==="ar"?m.item_ar:m.item_en)+'</td>'
+        + (showBranch?'<td>'+esc(branchName(m.branch||defaultBranchId()))+'</td>':'')
         + '<td><span class="pill '+cls+'">'+esc(t(MLABEL[m.type]||"m_adjust"))+'</span></td>'
         + '<td>'+esc(fmtMove(m))+'</td><td>'+esc(m.by||"—")+'</td><td>'+esc(m.note||"—")+'</td></tr>';
     }).join("")+'</tbody></table></div>';
 }
 function viewMoves(){
-  let list=state.moves;
+  let list=curMoves();
   if(state.mFilter) list=list.filter(m=>m.type===state.mFilter);
   return '<div class="phead"><div><h1>'+esc(t("nav_moves"))+'</h1>'
     + '<p>'+esc(state.lang==="ar"?"كل حركة دخول أو خروج مسجّلة باسم من سوّاها — آخر 30 يوم.":"Every in and out, recorded with who did it — the last 30 days.")+'</p></div>'
@@ -836,7 +911,7 @@ function viewMoves(){
 }
 
 function viewRep(){
-  const ing=state.ingredients, pr=state.products, lows=lowItems();
+  const ing=curIngs(), pr=curProds(), lows=lowItems();
   const vIng=ing.reduce((s,x)=>s+Number(x.stock||0)*Number(x.cost||0),0);
   const vPr=pr.reduce((s,x)=>s+Number(x.stock||0)*Number(x.price||0),0);
   const mv=state.repMoves;
@@ -876,12 +951,26 @@ function permSummary(a){
 function viewSet(){
   const s=state.settings, admin=can("admin"), me=meAcct();
   return '<div class="phead"><div><h1>'+esc(t("nav_set"))+'</h1><p>'+esc(t("set_sub"))+'</p></div></div>'
+  + '<section class="panel"><header><h2>'+esc(t("branches"))+'</h2>'
+    + (admin?'<button class="btn btn-sm btn-primary" data-act="addbranch">+ '+esc(t("add_branch"))+'</button>':'')+'</header>'
+    + (state.branches.length
+      ? '<div class="scroll"><table><thead><tr><th>'+esc(t("branch"))+'</th><th>'+esc(t("t_ing"))+'</th><th>'+esc(t("t_prod"))+'</th><th class="no-print">'+esc(t("acts"))+'</th></tr></thead><tbody>'
+      + state.branches.map(b=>'<tr><td><b>'+esc(nm(b))+'</b></td>'
+        + '<td>'+state.ingredients.filter(x=>branchOf(x)===b.id).length+'</td>'
+        + '<td>'+state.products.filter(x=>branchOf(x)===b.id).length+'</td>'
+        + '<td class="rowacts no-print">'+(admin?'<button class="btn btn-sm" data-act="editbranch" data-id="'+b.id+'">'+esc(t("edit"))+'</button>'
+          + '<button class="btn btn-sm btn-danger" data-act="delbranch" data-id="'+b.id+'">'+esc(t("del"))+'</button>':'')+'</td></tr>').join("")
+      + '</tbody></table></div>'
+      : '<div class="empty">'+esc(t("no_branch_yet"))+'</div>')
+    + '<div class="body" style="border-top:1px solid var(--line);color:var(--ink-2);font-size:.82rem">'+esc(t("branch_hint"))+'</div>'
+  + '</section>'
   + '<section class="panel"><header><h2>'+esc(t("users"))+'</h2>'
     + (admin?'<button class="btn btn-sm btn-primary" data-act="adduser">+ '+esc(t("add_user"))+'</button>':'')+'</header>'
-    + '<div class="scroll"><table><thead><tr><th>'+esc(t("user"))+'</th><th>'+esc(t("who_role"))+'</th><th>'+esc(t("perms"))+'</th><th class="no-print">'+esc(t("acts"))+'</th></tr></thead><tbody>'
+    + '<div class="scroll"><table><thead><tr><th>'+esc(t("user"))+'</th><th>'+esc(t("who_role"))+'</th><th>'+esc(t("branch"))+'</th><th>'+esc(t("perms"))+'</th><th class="no-print">'+esc(t("acts"))+'</th></tr></thead><tbody>'
     + state.accounts.map(a=>'<tr><td><b>'+esc(a.username)+'</b>'+(me&&me.id===a.id?' <span class="pill pill-ok">'+esc(state.lang==="ar"?"أنت":"you")+'</span>':'')
         + (a.active===false?' <span class="pill pill-crit">'+esc(t("inactive"))+'</span>':'')+'</td>'
       + '<td><span class="pill pill-mute">'+esc(t("role_"+(a.role||"staff")))+'</span></td>'
+      + '<td>'+esc(a.branch==="*"||a.role==="admin" ? t("all_branches") : branchName(a.branch||defaultBranchId()))+'</td>'
       + '<td style="display:flex;gap:4px;flex-wrap:wrap;max-width:420px">'+permSummary(a)+'</td>'
       + '<td class="rowacts no-print">'+(admin?'<button class="btn btn-sm" data-act="edituser" data-id="'+a.id+'">'+esc(t("edit"))+'</button>'
         + '<button class="btn btn-sm btn-danger" data-act="deluser" data-id="'+a.id+'">'+esc(t("del"))+'</button>':'')+'</td></tr>').join("")
@@ -968,6 +1057,10 @@ function userModal(acct){
       + ["admin","chef","staff","viewer"].map(r=>'<option value="'+r+'" '+(a.role===r?"selected":"")+'>'+esc(t("role_"+r))+'</option>').join("")
     + '</select></div></div>'
     + '<div class="field"><label class="f">'+esc(acct?t("reset_pass"):t("pass"))+'</label><input type="password" id="u_pass" autocomplete="new-password" placeholder="'+esc(acct?t("pass_keep"):"")+'"></div>'
+    + '<div class="field"><label class="f">'+esc(t("user_branch"))+'</label><select id="u_branch">'
+      + '<option value="*" '+((a.branch==="*"||(!a.branch&&a.role==="admin"))?"selected":"")+'>'+esc(t("branch_all_opt"))+'</option>'
+      + state.branches.map(b=>'<option value="'+b.id+'" '+(a.branch===b.id?"selected":"")+'>'+esc(nm(b))+'</option>').join("")
+    + '</select></div>'
     + '<div class="field"><label class="f">'+esc(t("perms"))+'</label><div class="perm-list" id="permList">'
       + PERMS.filter(p=>p!=="admin").map(p=>'<label><input type="checkbox" class="pm" data-p="'+p+'" '+((a.perms&&a.perms[p])?"checked":"")+'> '+esc(t("p_"+p))+'</label>').join("")
       + '<label><input type="checkbox" class="pm" data-p="admin" '+((a.role==="admin"||(a.perms&&a.perms.admin))?"checked":"")+'> '+esc(t("p_admin"))+'</label>'
@@ -1160,6 +1253,39 @@ function moveModal(item,type){
     + '<div class="field"><label class="f">'+esc(t("note"))+'</label><input type="text" id="mv_n"></div>',
     btnCancel()+'<button class="btn btn-primary" data-act="domove" data-id="'+item.id+'" data-v="'+type+'" data-k="'+(isIng?"ing":"prod")+'">'+t("confirm")+'</button>');
 }
+/* Branches keep separate catalogues, so a transfer is two linked movements:
+   the amount leaves the sending branch's item and arrives on the receiving
+   branch's own record of it — picked explicitly, or created there on the spot. */
+function transferModal(item){
+  const kind = state.ingredients.some(x=>x.id===item.id) ? "ing" : "prod";
+  const here = branchOf(item);
+  const others = state.branches.filter(b=>b.id!==here);
+  if(!others.length){ toast(t("transfer_same")); return; }
+  const pool = kind==="ing" ? state.ingredients : state.products;
+  const destOptions = (bid)=>{
+    const same = pool.filter(x=>branchOf(x)===bid);
+    const guess = same.find(x=>x.barcode && x.barcode===item.barcode) || same.find(x=>x.name_ar===item.name_ar);
+    return '<option value="">—</option>'
+      + '<option value="__new" '+(guess?"":"selected")+'>'+esc(t("create_dest"))+'</option>'
+      + same.map(x=>'<option value="'+x.id+'" '+(guess&&guess.id===x.id?"selected":"")+'>'+esc(nm(x))+' ('+esc(un(x))+')</option>').join("");
+  };
+  const choices=unitChoices(item), own=uMetaOf(item);
+  const picker = choices.length>1
+    ? '<select id="tr_u" style="max-width:120px">'+choices.map(u=>'<option value="'+u.en+'" '+(own&&own.en===u.en?"selected":"")+'>'+esc(uLabel(u))+'</option>').join("")+'</select>'
+    : '<span class="pill pill-mute" style="align-self:center;white-space:nowrap">'+esc(un(item))+'</span>';
+  openModal(t("transfer_title")+" — "+nm(item),
+    '<p style="margin-top:0;color:var(--ink-2);font-size:.86rem">'+esc(branchName(here))+' · '+esc(t("avail"))+': '+esc(fmtItem(item.stock,item))+'</p>'
+    + '<div class="field"><label class="f">'+esc(t("to_branch"))+'</label><select id="tr_b">'
+      + others.map(b=>'<option value="'+b.id+'">'+esc(nm(b))+'</option>').join("")+'</select></div>'
+    + '<div class="field"><label class="f">'+esc(t("dest_item"))+'</label><select id="tr_item">'+destOptions(others[0].id)+'</select></div>'
+    + '<div class="field"><label class="f">'+esc(t("qty"))+'</label>'
+      + '<div style="display:flex;gap:8px"><input type="number" step="0.001" id="tr_q" style="flex:1" autofocus>'+picker+'</div></div>'
+    + '<div class="field"><label class="f">'+esc(t("note"))+'</label><input type="text" id="tr_n"></div>',
+    btnCancel()+'<button class="btn btn-primary" data-act="dotransfer" data-id="'+item.id+'" data-k="'+kind+'">'+t("confirm")+'</button>');
+  const bSel=$("tr_b");
+  if(bSel) bSel.addEventListener("change",()=>{ $("tr_item").innerHTML=destOptions(bSel.value); });
+}
+
 async function applyMove(item,kind,type,q,note){
   const delta = type==="receive" ? q : (type==="adjust" ? q : -q);
   const next = Number(item.stock||0)+delta;
@@ -1192,13 +1318,13 @@ async function openCam(onCode){
 
 /* ---------------------------------------------------------- export data */
 function itemSheet(kind){
-  const isIng=kind==="ing", rows=[[t("name"),t("cat"),t("avail"),t("unit"),t("min"),isIng?t("cost"):t("price"),t("barcode")]];
-  (isIng?state.ingredients:state.products).forEach(x=>rows.push([nm(x),ct(x),Number(x.stock||0),un(x),Number(x.min||0),Number((isIng?x.cost:x.price)||0),x.barcode||""]));
+  const isIng=kind==="ing", rows=[[t("name"),t("cat"),t("avail"),t("unit"),t("min"),isIng?t("cost"):t("price"),t("barcode"),t("branch")]];
+  (isIng?curIngs():curProds()).forEach(x=>rows.push([nm(x),ct(x),Number(x.stock||0),un(x),Number(x.min||0),Number((isIng?x.cost:x.price)||0),x.barcode||"",branchName(branchOf(x))]));
   return {name:isIng?t("nav_ing"):t("nav_prod"),rows:rows};
 }
 function moveSheet(list){
-  const rows=[[t("date"),t("item"),t("type"),t("qty"),t("unit"),t("by"),t("note")]];
-  list.forEach(m=>rows.push([timeOf(m.at),state.lang==="ar"?m.item_ar:m.item_en,t(MLABEL[m.type]||"m_adjust"),Number(m.qty||0),(state.lang==="ar"?(m.unit_ar||m.unit):(m.unit_en||m.unit))||"",m.by||"",m.note||""]));
+  const rows=[[t("date"),t("item"),t("type"),t("qty"),t("unit"),t("by"),t("note"),t("branch")]];
+  list.forEach(m=>rows.push([timeOf(m.at),state.lang==="ar"?m.item_ar:m.item_en,t(MLABEL[m.type]||"m_adjust"),Number(m.qty||0),(state.lang==="ar"?(m.unit_ar||m.unit):(m.unit_en||m.unit))||"",m.by||"",m.note||"",branchName(m.branch||defaultBranchId())]));
   return {name:t("rep_moves"),rows:rows};
 }
 
@@ -1225,7 +1351,11 @@ document.addEventListener("click",async (ev)=>{
       try{
         const salt=randSalt(), hash=await derive(p,salt), nid=uid("acct");
         await state.db.doc("accounts/"+nid).set({username:u,salt:salt,hash:hash,role:"admin",
-          perms:Object.assign({},PRESETS.admin),active:true,created_at:new Date().toISOString()});
+          perms:Object.assign({},PRESETS.admin),active:true,branch:"*",created_at:new Date().toISOString()});
+        /* a shop needs somewhere to put its stock before it can hold any */
+        if(!state.branches.length){
+          await state.db.doc("branches/"+uid("br")).set({name_ar:"الفرع الرئيسي",name_en:"Main branch",created_at:new Date().toISOString()});
+        }
         state.session={id:nid}; ls("ks_session",JSON.stringify(state.session)); state.loginUser="";
       }catch(e){ state.authErr = (e&&e.code==="invalid_argument") ? t("acct_denied") : dbErr(e); }
       state.busy=false; render(); break;
@@ -1238,11 +1368,97 @@ document.addEventListener("click",async (ev)=>{
       const acct=state.accounts.find(a=>String(a.username||"").toLowerCase()===u && a.active!==false);
       let ok=false;
       if(acct){ try{ ok = (await derive(p,acct.salt))===acct.hash; }catch(e){ ok=false; } }
-      if(ok){ state.session={id:acct.id}; ls("ks_session",JSON.stringify(state.session)); state.authErr=""; state.loginUser=""; }
+      if(ok){ state.session={id:acct.id}; ls("ks_session",JSON.stringify(state.session)); state.authErr=""; state.loginUser=""; ensureBranch(); }
       else state.authErr=t("bad_login");
       state.busy=false; render(); break;
     }
     case "signout": state.session=null; ls("ks_session","null"); state.tab="dash"; state.loginUser=""; state.authErr=""; render(); break;
+    case "addbranch": case "editbranch": {
+      if(!can("admin")){ toast(t("no_perm")); return; }
+      const b = act==="editbranch" ? branchById(id) : null;
+      openModal(b? t("edit_branch") : t("add_branch"),
+        '<div class="grid2">'
+        + '<div class="field"><label class="f">'+esc(t("branch_ar"))+'</label><input type="text" id="b_ar" value="'+esc(b?b.name_ar:"")+'"></div>'
+        + '<div class="field"><label class="f">'+esc(t("branch_en"))+'</label><input type="text" id="b_en" value="'+esc(b?b.name_en:"")+'"></div></div>',
+        btnCancel()+'<button class="btn btn-primary" data-act="savebranch" data-id="'+(b?b.id:"")+'">'+t("save")+'</button>');
+      break;
+    }
+    case "savebranch": {
+      if(!can("admin")){ toast(t("no_perm")); return; }
+      const ar=$("b_ar").value.trim(), en=$("b_en").value.trim()||ar;
+      if(!ar){ toast(t("err_name")); return; }
+      await guard(async ()=>{
+        const bid = id || uid("br");
+        if(id) await state.db.doc("branches/"+bid).update({name_ar:ar,name_en:en});
+        else await state.db.doc("branches/"+bid).set({name_ar:ar,name_en:en,created_at:new Date().toISOString()});
+        closeModal();
+      }, t("saved"));
+      break;
+    }
+    case "delbranch": {
+      if(!can("admin")){ toast(t("no_perm")); return; }
+      const held = state.ingredients.concat(state.products).filter(x=>branchOf(x)===id).length;
+      if(held){ toast(t("branch_in_use").replace("{n}",held)); return; }
+      if(state.branches.length<=1){ toast(t("last_branch")); return; }
+      if(!confirm(t("branch_del_q"))) return;
+      await guard(async ()=>{
+        await state.db.doc("branches/"+id).delete();
+        if(state.branch===id) state.branch="";
+      }, t("deleted"));
+      break;
+    }
+    case "transfer": {
+      if(!can("receive")){ toast(t("no_perm")); return; }
+      closeModal();
+      if(item) transferModal(item);
+      break;
+    }
+    case "dotransfer": {
+      const kind=el.dataset.k;
+      const src=(kind==="ing"?state.ingredients:state.products).find(x=>x.id===id);
+      if(!src) return;
+      const destBranch=$("tr_b").value, destChoice=$("tr_item").value;
+      const typed=Number($("tr_q").value), note=$("tr_n").value.trim();
+      const sel=$("tr_u");
+      const chosenU = sel ? unitChoices(src).find(u=>u.en===sel.value) : null;
+      const qty = chosenU ? (typed*chosenU.f)/baseFactor(src) : typed;   // in the source item's unit
+      if(!qty || qty<=0){ toast(t("err_qty")); return; }
+      if(qty>Number(src.stock||0)){ toast(t("err_stock")); return; }
+      if(!destBranch || destBranch===branchOf(src)){ toast(t("transfer_same")); return; }
+      if(!destChoice){ toast(t("pick_dest")); return; }
+      const coll = kind==="ing"?"ingredients":"products";
+      let dest = destChoice==="__new" ? null : (kind==="ing"?state.ingredients:state.products).find(x=>x.id===destChoice);
+      /* the two branches may count the same thing differently (kilos here,
+         grams there); convert when they share a family, refuse when they don't */
+      let destQty = qty;
+      if(dest){
+        const a=uMetaOf(src), b2=uMetaOf(dest);
+        if(a && b2 && a.fam!==b2.fam){ toast(t("unit_mismatch").replace("{a}",uLabel(a)).replace("{b}",uLabel(b2))); return; }
+        if(a && b2) destQty = (qty*baseFactor(src))/baseFactor(dest);
+      }
+      await guard(async ()=>{
+        let destId, destDoc;
+        if(dest){ destId=dest.id; destDoc=dest; }
+        else{
+          destId = uid(kind==="ing"?"ing":"prd");
+          destDoc = Object.assign({}, src, {stock:0, branch:destBranch, created_at:new Date().toISOString(), barcode:""});
+          delete destDoc.id;
+          if(kind==="prod") destDoc.recipe=[];        // recipes belong to their own branch's ingredients
+          await state.db.doc(coll+"/"+destId).set(destDoc);
+        }
+        await state.db.doc(coll+"/"+src.id).update({stock:Number(src.stock||0)-qty});
+        await state.db.doc(coll+"/"+destId).update({stock:Number((dest&&dest.stock)||0)+destQty});
+        const srcBranch=branchOf(src);
+        await logMoves([
+          Object.assign({kind:kind,item_id:src.id,item_ar:src.name_ar,item_en:src.name_en,type:"transfer_out",
+            qty:qty, note:(note?note+" · ":"")+branchName(destBranch), branch:srcBranch}, unitOf(src)),
+          Object.assign({kind:kind,item_id:destId,item_ar:destDoc.name_ar,item_en:destDoc.name_en,type:"transfer_in",
+            qty:destQty, note:(note?note+" · ":"")+branchName(srcBranch), branch:destBranch}, unitOf(destDoc))
+        ]);
+        closeModal();
+      }, t("done"));
+      break;
+    }
     case "adduser": if(can("admin")) userModal(null); break;
     case "edituser": if(can("admin")) userModal(state.accounts.find(a=>a.id===id)); break;
     case "saveuser": {
@@ -1261,7 +1477,8 @@ document.addEventListener("click",async (ev)=>{
       const willBeAdmin = role==="admin" || !!perms.admin;
       if(existing && existing.role==="admin" && (!willBeAdmin || !active) && activeAdmins().length<=1){ toast(t("last_admin")); return; }
       await guard(async ()=>{
-        const doc={username:uname, role:willBeAdmin?"admin":role, perms:perms, active:active};
+        const doc={username:uname, role:willBeAdmin?"admin":role, perms:perms, active:active,
+          branch: ($("u_branch")||{}).value || "*"};
         if(pw){ doc.salt=randSalt(); doc.hash=await derive(pw,doc.salt); }
         if(existing) await state.db.doc("accounts/"+existing.id).update(doc);
         else{ doc.created_at=new Date().toISOString(); await state.db.doc("accounts/"+uid("acct")).set(doc); }
@@ -1329,7 +1546,7 @@ document.addEventListener("click",async (ev)=>{
         }
         else{
           const nid=uid(v==="ing"?"ing":"prd");
-          const doc=Object.assign({stock:0,created_at:new Date().toISOString()},r.doc);
+          const doc=Object.assign({stock:0,created_at:new Date().toISOString(),branch:state.branch||defaultBranchId()},r.doc);
           await state.db.doc(coll+"/"+nid).set(doc);
           if(Number(doc.stock)>0) await logMoves([{kind:v,item_id:nid,item_ar:doc.name_ar,item_en:doc.name_en,unit_ar:doc.unit_ar,unit_en:doc.unit_en,type:"receive",qty:Number(doc.stock),note:t("opening")}]);
         }
@@ -1351,6 +1568,7 @@ document.addEventListener("click",async (ev)=>{
         + '<div class="acts" style="margin-top:14px">'
           + (can("adjust")?'<button class="btn" data-act="adjust" data-id="'+id+'">'+esc(t("adjust"))+'</button>':'')
           + (can("items")?'<button class="btn" data-act="edititem" data-id="'+id+'">'+esc(t("edit"))+'</button>':'')
+          + (state.branches.length>1 && can("receive")?'<button class="btn" data-act="transfer" data-id="'+id+'">'+esc(t("transfer"))+'</button>':'')
           + (item.barcode?'<button class="btn" data-act="labelbc" data-id="'+id+'">'+esc(t("label"))+'</button>':'')
           + (can("del")?'<button class="btn btn-danger" data-act="delitem" data-id="'+id+'" data-k="'+(isIng?"ing":"prod")+'">'+esc(t("del"))+'</button>':'')
         + '</div>', btnCancel());
@@ -1418,9 +1636,9 @@ document.addEventListener("click",async (ev)=>{
     }
     case "print": try{ window.print(); }catch(e){ toast(t("print_hint")); } break;
     case "excelitems": await saveFile((v==="ing"?"ingredients":"products")+"-"+dayKey()+".xlsx", buildXlsx([itemSheet(v)])); break;
-    case "excelmoves": await saveFile("movements-"+dayKey()+".xlsx", buildXlsx([moveSheet(state.moves)])); break;
+    case "excelmoves": await saveFile("movements-"+dayKey()+".xlsx", buildXlsx([moveSheet(curMoves())])); break;
     case "excelrep": {
-      const mv = state.repMoves||state.moves;
+      const mv = state.repMoves||curMoves();
       await saveFile("inventory-report-"+dayKey()+".xlsx", buildXlsx([itemSheet("ing"),itemSheet("prod"),moveSheet(mv)]));
       break;
     }
@@ -1462,6 +1680,7 @@ document.addEventListener("change",async (ev)=>{
   const key=el.dataset&&el.dataset.input;
   if(key==="lowonly"){ state.lowOnly=el.checked; render(); }
   if(key==="mfilter"){ state.mFilter=el.value; render(); }
+  if(key==="branch"){ state.branch=el.value; state.makePid=""; state.makeQty=""; state.search=""; state.repMoves=null; if(state.tab==="rep") loadRepMoves(); render(); }
   if(key==="makepid"){ state.makePid=el.value; state.makeUnit=""; render(); }
   if(key==="makeunit"){ state.makeUnit=el.value; render(); }
   if(key==="repfrom"){ state.repFrom=el.value; loadRepMoves(); }
@@ -1486,7 +1705,8 @@ async function loadRepMoves(){
   try{
     const snap=await state.db.collection("movements").where("date",">=",state.repFrom).where("date","<=",state.repTo).orderBy("date","desc").limit(120).get();
     const out=[]; snap.docs.forEach(d=>(d.data().entries||[]).forEach(e=>out.push(e)));
-    state.repMoves=out.sort((a,b)=>String(b.at||"").localeCompare(String(a.at||"")));
+    state.repMoves=out.filter(m=>!state.branch || (m.branch||defaultBranchId())===state.branch)
+      .sort((a,b)=>String(b.at||"").localeCompare(String(a.at||"")));
   }catch(e){ state.repMoves=[]; }
   render();
 }
