@@ -1,0 +1,17 @@
+{
+  "name": "kitchen-stock-host",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-hosting layer for the Kitchen Stock page: serves it on your own domain and keeps its data in your own database.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "express": "^4.21.0"
+  }
+}

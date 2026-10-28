@@ -253,6 +253,7 @@ const STR = {
     p_produce:"التصنيع", p_items:"إضافة وتعديل الأصناف والوصفات", p_del:"حذف الأصناف",
     p_reports:"التقارير والتصدير", p_admin:"إدارة المستخدمين والإعدادات",
     role_preset:"صلاحيات جاهزة", sec_note:"الحساب ينظّم عمل الفريق داخل الصفحة. الحماية الفعلية من مين تشارك معه الرابط.",
+    sec_note_host:"كلمة المرور تُفحص على سيرفرك، ولا تخرج منه نسخة محفوظة منها.",
     no_crypto:"متصفحك ما يدعم التشفير المطلوب لتسجيل الدخول. جرّب متصفح أحدث.",
     acct_denied:"هذا الجهاز ما عنده صلاحية تعديل المستخدمين. صاحب الصفحة لازم يشارك الرابط معك بصلاحية «يقدر يعدّل».",
     unit_converted:"تم تحويل الأرقام تلقائياً مع تغيير الوحدة.",
@@ -341,6 +342,7 @@ const STR = {
     p_produce:"Production", p_items:"Add and edit items and recipes", p_del:"Delete items",
     p_reports:"Reports and export", p_admin:"Manage users and settings",
     role_preset:"Preset", sec_note:"Accounts organise your team inside the page. Real protection comes from who you share the link with.",
+    sec_note_host:"Your password is checked on your own server, which never hands out what it stores.",
     no_crypto:"This browser can't run the encryption sign-in needs. Try a newer browser.",
     acct_denied:"This device isn't allowed to change users. The page owner needs to share the link with you as “can edit”.",
     unit_converted:"Amounts were converted along with the unit.",
@@ -565,6 +567,37 @@ async function derive(pw,saltB64){
   const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveBits"]);
   const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:unb64(saltB64),iterations:150000,hash:"SHA-256"},key,256);
   return b64(new Uint8Array(bits));
+}
+/* Where a password gets checked depends on where the page is served from. On
+   claude.ai it is derived and compared right here against the salt saved with
+   the account. A self-hosted copy installs an authenticator that asks its own
+   server instead, so the browser is never handed a stored derivation. */
+function hostAuth(){ return window.KS_HOST_AUTH || null; }
+function needsSetup(){ const h=hostAuth(); return h ? h.needsSetup() : state.accounts.length===0; }
+async function authSignIn(u,p){
+  const h=hostAuth();
+  if(h) return await h.signIn(u,p);
+  const a=state.accounts.find(x=>String(x.username||"").toLowerCase()===u && x.active!==false);
+  if(!a) return null;
+  try{ return (await derive(p,a.salt))===a.hash ? {id:a.id} : null; }catch(e){ return null; }
+}
+async function authSetup(u,p,doc){
+  const h=hostAuth();
+  if(h) return await h.setup(u,p,doc);
+  const id=uid("acct"), salt=randSalt();
+  await state.db.doc("accounts/"+id).set(Object.assign({username:u,salt:salt,hash:await derive(p,salt)},doc));
+  return {id:id};
+}
+async function authSaveAccount(existingId,uname,pw,doc){
+  const h=hostAuth();
+  if(h) return await h.saveAccount(existingId,uname,pw,doc);
+  const d=Object.assign({username:uname},doc);
+  if(pw){ d.salt=randSalt(); d.hash=await derive(pw,d.salt); }
+  if(existingId){ await state.db.doc("accounts/"+existingId).update(d); return existingId; }
+  d.created_at=new Date().toISOString();
+  const id=uid("acct");
+  await state.db.doc("accounts/"+id).set(d);
+  return id;
 }
 
 /* ---------------------------------------------------------------- state */
@@ -975,7 +1008,7 @@ function viewSet(){
       + '<td class="rowacts no-print">'+(admin?'<button class="btn btn-sm" data-act="edituser" data-id="'+a.id+'">'+esc(t("edit"))+'</button>'
         + '<button class="btn btn-sm btn-danger" data-act="deluser" data-id="'+a.id+'">'+esc(t("del"))+'</button>':'')+'</td></tr>').join("")
     + '</tbody></table></div>'
-    + '<div class="body" style="border-top:1px solid var(--line);color:var(--ink-2);font-size:.82rem">'+esc(t("sec_note"))+'</div>'
+    + '<div class="body" style="border-top:1px solid var(--line);color:var(--ink-2);font-size:.82rem">'+esc(hostAuth()?t("sec_note_host"):t("sec_note"))+'</div>'
   + '</section>'
   + (admin? '<div class="two">'
     + '<section class="panel"><header><h2>'+esc(t("shop"))+'</h2></header><div class="body">'
@@ -992,7 +1025,7 @@ function viewSet(){
 
 /* the sign-in gate: nothing else renders until an active account is signed in */
 function gateHtml(){
-  const first = state.accounts.length===0;
+  const first = needsSetup();
   return '<div class="gate"><div class="gatecard">'
     + '<div style="display:flex;justify-content:center;margin-bottom:16px">'+langSeg()+'</div>'
     + '<div class="brand" style="justify-content:center;padding:0 0 6px"><span class="mark">🍳</span>'+esc(state.settings.shop_ar||state.settings.shop_en||t("app"))+'</div>'
@@ -1005,7 +1038,7 @@ function gateHtml(){
     + (first?'<div class="field"><label class="f" for="lg_p2">'+esc(t("pass2"))+'</label><input type="password" id="lg_p2" autocomplete="new-password"></div>':'')
     + '<button class="btn btn-primary" style="width:100%;justify-content:center" data-act="'+(first?"setupadmin":"dologin")+'" '+(state.busy||!hasCrypto?"disabled":"")+'>'
       + esc(state.busy?"…":(first?t("setup_t"):t("signin")))+'</button>'
-    + '<p style="color:var(--ink-2);font-size:.78rem;margin:14px 0 0;text-align:center">'+esc(t("sec_note"))+'</p>'
+    + '<p style="color:var(--ink-2);font-size:.78rem;margin:14px 0 0;text-align:center">'+esc(hostAuth()?t("sec_note_host"):t("sec_note"))+'</p>'
   + '</div></div>';
 }
 function viewHtml(){
@@ -1349,9 +1382,9 @@ document.addEventListener("click",async (ev)=>{
       if(p!==p2){ state.authErr=t("pass_match"); render(); return; }
       state.busy=true; state.authErr=""; render();
       try{
-        const salt=randSalt(), hash=await derive(p,salt), nid=uid("acct");
-        await state.db.doc("accounts/"+nid).set({username:u,salt:salt,hash:hash,role:"admin",
-          perms:Object.assign({},PRESETS.admin),active:true,branch:"*",created_at:new Date().toISOString()});
+        const made = await authSetup(u,p,{role:"admin",perms:Object.assign({},PRESETS.admin),
+          active:true,branch:"*",created_at:new Date().toISOString()});
+        const nid = made.id;
         /* a shop needs somewhere to put its stock before it can hold any */
         if(!state.branches.length){
           await state.db.doc("branches/"+uid("br")).set({name_ar:"الفرع الرئيسي",name_en:"Main branch",created_at:new Date().toISOString()});
@@ -1365,14 +1398,18 @@ document.addEventListener("click",async (ev)=>{
       state.loginUser=$("lg_u").value.trim();
       if(!u||!p){ state.authErr=t("need_user"); render(); return; }
       state.busy=true; state.authErr=""; render();
-      const acct=state.accounts.find(a=>String(a.username||"").toLowerCase()===u && a.active!==false);
-      let ok=false;
-      if(acct){ try{ ok = (await derive(p,acct.salt))===acct.hash; }catch(e){ ok=false; } }
-      if(ok){ state.session={id:acct.id}; ls("ks_session",JSON.stringify(state.session)); state.authErr=""; state.loginUser=""; ensureBranch(); }
+      let who=null;
+      try{ who = await authSignIn(u,p); }catch(e){ who=null; }
+      if(who){ state.session={id:who.id}; ls("ks_session",JSON.stringify(state.session)); state.authErr=""; state.loginUser=""; ensureBranch(); }
       else state.authErr=t("bad_login");
       state.busy=false; render(); break;
     }
-    case "signout": state.session=null; ls("ks_session","null"); state.tab="dash"; state.loginUser=""; state.authErr=""; render(); break;
+    case "signout": {
+      const h=hostAuth();
+      state.session=null; ls("ks_session","null"); state.tab="dash"; state.loginUser=""; state.authErr=""; render();
+      if(h) h.signOut();     /* and drop the session on the server */
+      break;
+    }
     case "addbranch": case "editbranch": {
       if(!can("admin")){ toast(t("no_perm")); return; }
       const b = act==="editbranch" ? branchById(id) : null;
@@ -1477,11 +1514,9 @@ document.addEventListener("click",async (ev)=>{
       const willBeAdmin = role==="admin" || !!perms.admin;
       if(existing && existing.role==="admin" && (!willBeAdmin || !active) && activeAdmins().length<=1){ toast(t("last_admin")); return; }
       await guard(async ()=>{
-        const doc={username:uname, role:willBeAdmin?"admin":role, perms:perms, active:active,
+        const doc={role:willBeAdmin?"admin":role, perms:perms, active:active,
           branch: ($("u_branch")||{}).value || "*"};
-        if(pw){ doc.salt=randSalt(); doc.hash=await derive(pw,doc.salt); }
-        if(existing) await state.db.doc("accounts/"+existing.id).update(doc);
-        else{ doc.created_at=new Date().toISOString(); await state.db.doc("accounts/"+uid("acct")).set(doc); }
+        await authSaveAccount(existing?existing.id:null, uname, pw, doc);
         closeModal();
       }, t("saved"), "accounts");
       break;

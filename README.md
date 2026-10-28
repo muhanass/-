@@ -4,12 +4,13 @@
 
 A bilingual (Arabic/English) inventory management system for food & beverage shops that manufacture their own products in-house (chef-made items).
 
-يوجد نسختان:
+يوجد ثلاث طرق لتشغيله:
 
-1. **نسخة الويب الجاهزة** (`web/kitchen-stock.html`) — صفحة واحدة منشورة على claude.ai لها رابط يُفتح من أي جهاز بدون تنصيب، والبيانات محفوظة ومشتركة بين كل من يفتح الرابط.
-2. **النسخة الكاملة** (`server/` + `client/`) — تعمل على جهاز في المحل، وفيها إضافات تحتاج صلاحيات الجهاز: مسح الباركود بالكاميرا، وقراءة النص من الصور (OCR)، وحفظ صور الأصناف كملفات.
+1. **الرابط الجاهز** (`web/kitchen-stock.html`) — صفحة واحدة منشورة على claude.ai، تُفتح من أي جهاز بدون تنصيب، والبيانات مشتركة بين كل من يفتح الرابط. يحتاج كل موظف حساب Claude.
+2. **على دومينك الخاص** (`host/`) — **نفس** الصفحة أعلاه، لكن يقدّمها سيرفرك مع قاعدة بيانات عندك، والدخول باليوزرنيم والباسوورد فقط بدون أي حساب خارجي، وكلمة المرور تُفحص على السيرفر. الدليل خطوة بخطوة في [`host/README.md`](host/README.md).
+3. **النسخة الكاملة القديمة** (`server/` + `client/`) — تطبيق React مع واجهة برمجية منفصلة، محفوظ للمراجعة. **متأخر عن الصفحة** — ما فيه الفروع ولا وحدة القالب ولا تحويل الوحدات.
 
-There are two versions: a ready-to-open **web page** (`web/kitchen-stock.html`, published on claude.ai — one link, no install, shared data) and the **full app** (`server/` + `client/`) that runs on a shop computer and adds camera barcode scanning, photo OCR, and file-based photo storage.
+Three ways to run it: the **published link** (`web/kitchen-stock.html` on claude.ai — one link, no install, but each person needs a Claude account); **your own domain** (`host/` serves that same page from your server with its own database and server-checked passwords — see [`host/README.md`](host/README.md)); and the **older full-stack version** (`server/` + `client/`), kept for reference and behind the page on features.
 
 ---
 
